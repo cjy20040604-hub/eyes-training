@@ -28,10 +28,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      # End-to-end tests run against a root-path build served by `vite preview` on localhost.
       - run: npm run build
-        env:
-          # GitHub Pages serves under /<repo>/; hash routing makes only asset URLs depend on this.
-          VITE_BASE: /${{ github.event.repository.name }}/
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env:
@@ -41,6 +39,12 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report
+      # Rebuild for GitHub Pages, which serves under /<repo>/. Hash routing means only
+      # asset URLs depend on this base path.
+      - run: npm run build
+        if: github.ref == 'refs/heads/main'
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with:
