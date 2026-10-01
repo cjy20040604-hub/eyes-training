@@ -1,0 +1,237 @@
+import type { CalibrationProfile, IntensityTier } from '../../data/schema';
+import type { EyeLayer, RenderOptions } from '../../engine/renderer';
+import {
+  clampToArea,
+  distance,
+  drawDisc,
+  drawFusionFrame,
+  glide,
+  grayCss,
+  randomInArea,
+  type Point,
+} from '../common';
+import type {
+  HudState,
+  IntensityMap,
+  ModuleDefinition,
+  ModuleInput,
+  ModuleInstance,
+  ModuleRuntimeContext,
+} from '../types';
+
+/**
+ * L1 "Both Eyes On" — simultaneous perception.
+ * Left (suppressed) eye sees the BIRD. Right eye sees the CAGE. Both see a fusion frame.
+ * The user steers the bird into the cage; the cage drifts gently. A small "chick" marker
+ * appears next to the bird (LEFT eye only) at random intervals; pressing the action key
+ * while it is visible records a probe hit (evidence the left eye is contributing).
+ *
+ * Visual difficulty = dominant (right) eye contrast ratio; the left eye is always 100%.
+ * Game difficulty = cage size / drift speed.
+ */
+
+const intensity: IntensityMap = {
+  metric: 'dominantContrastRatio',
+  unit: '',
+  valueForTier(tier: IntensityTier, calibration: CalibrationProfile): number {
+    const b = calibration.contrastBalance.balanceRatio;
+    if (tier === 'low') return round2(b);
+    if (tier === 'medium') return round2(b + (1 - b) * 0.25);
+    return round2(b + (1 - b) * 0.5);
+  },
+  bounds: (calibration) => ({ min: 0.05, max: Math.min(1, calibration.contrastBalance.balanceRatio + 0.6) }),
+  maxStepPerSession: 0.05,
+  stepBack: 0.1,
+  harderDirection: 1,
+  requiresClinician: false,
+  format: (v) => `${Math.round(v * 100)}%`,
+};
+
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+class L1Instance implements ModuleInstance {
+  private bird: Point;
+  private cage: Point;
+  private cageTarget: Point;
+  private cageHalf: number;
+  private driftSpeed: number;
+  private nextRelocateAt = 0;
+  private timeInCageMs = 0;
+  private elapsedMs = 0;
+  private score = 0;
+  private probeVisible = false;
+  private probeShownAt = 0;
+  private nextProbeAt = 0;
+  private probesShown = 0;
+  private probesHit = 0;
+  private probeHitThisWindow = false;
+  private moveVel: Point = { x: 0, y: 0 };
+  private pointerTarget: Point | null = null;
+  private promptKey = 'modules.l1.prompt.steer';
+
+  constructor(private ctx: ModuleRuntimeContext) {
+    const g = ctx.gameDifficulty;
+    this.cageHalf = Math.max(28, 70 - (g - 1) * 8);
+    this.driftSpeed = ctx.reducedMotion ? 10 : 15 + (g - 1) * 10;
+    this.bird = { x: ctx.width / 2, y: ctx.height / 2 };
+    this.cage = { x: ctx.width / 2, y: ctx.height / 2 };
+    this.cageTarget = { ...this.cage };
+  }
+
+  start(nowMs: number): void {
+    this.nextRelocateAt = nowMs + 4000;
+    this.nextProbeAt = nowMs + 8000 + this.ctx.random() * 8000;
+  }
+
+  update(dtMs: number, nowMs: number): void {
+    this.elapsedMs += dtMs;
+    // Cage relocation (gentle glide; no abrupt luminance change).
+    if (nowMs >= this.nextRelocateAt) {
+      this.cageTarget = randomInArea(this.ctx, this.cageHalf + 10);
+      const interval = this.ctx.reducedMotion ? 8000 : 6000 - (this.ctx.gameDifficulty - 1) * 600;
+      this.nextRelocateAt = nowMs + interval;
+    }
+    this.cage = glide(this.cage, this.cageTarget, this.driftSpeed, dtMs);
+
+    // Bird movement from keyboard velocity or pointer target.
+    if (this.pointerTarget) {
+      this.bird = glide(this.bird, this.pointerTarget, 300, dtMs);
+    } else {
+      this.bird = clampToArea(
+        this.ctx,
+        { x: this.bird.x + (this.moveVel.x * dtMs) / 1000, y: this.bird.y + (this.moveVel.y * dtMs) / 1000 },
+        16,
+      );
+    }
+    this.moveVel = { x: this.moveVel.x * 0.85, y: this.moveVel.y * 0.85 };
+
+    const inside =
+      Math.abs(this.bird.x - this.cage.x) < this.cageHalf - 10 &&
+      Math.abs(this.bird.y - this.cage.y) < this.cageHalf - 10;
+    if (inside) {
+      this.timeInCageMs += dtMs;
+      this.score += dtMs / 1000;
+    }
+    this.promptKey = inside ? 'modules.l1.prompt.hold' : 'modules.l1.prompt.steer';
+
+    // Probe marker (left eye only). Guarded so it can never flicker.
+    if (!this.probeVisible && nowMs >= this.nextProbeAt) {
+      if (this.ctx.guard.request(nowMs, 'l1-probe')) {
+        this.probeVisible = true;
+        this.probeShownAt = nowMs;
+        this.probesShown += 1;
+        this.probeHitThisWindow = false;
+        this.ctx.emit('probe', { shown: this.probesShown });
+      }
+    }
+    if (this.probeVisible && nowMs - this.probeShownAt > 2500) {
+      if (this.ctx.guard.request(nowMs, 'l1-probe')) {
+        this.probeVisible = false;
+        this.nextProbeAt = nowMs + 10000 + this.ctx.random() * 10000;
+      }
+    }
+  }
+
+  draw(layers: { left: EyeLayer; right: EyeLayer }): void {
+    const l = layers.left.begin();
+    const r = layers.right.begin();
+    drawFusionFrame(l, this.ctx);
+    drawFusionFrame(r, this.ctx);
+
+    // LEFT eye: bird = disc + wing + eye dot.
+    drawDisc(l, this.bird, 14, 1);
+    l.fillStyle = grayCss(1);
+    l.beginPath();
+    l.moveTo(this.bird.x - 6, this.bird.y - 2);
+    l.lineTo(this.bird.x - 26, this.bird.y - 14);
+    l.lineTo(this.bird.x - 10, this.bird.y + 8);
+    l.closePath();
+    l.fill();
+    l.beginPath();
+    l.moveTo(this.bird.x + 14, this.bird.y - 3);
+    l.lineTo(this.bird.x + 24, this.bird.y);
+    l.lineTo(this.bird.x + 14, this.bird.y + 3);
+    l.closePath();
+    l.fill();
+    if (this.probeVisible) {
+      drawDisc(l, { x: this.bird.x, y: this.bird.y + 26 }, 5, 0.9);
+    }
+
+    // RIGHT eye: cage = bars.
+    r.strokeStyle = grayCss(1);
+    r.lineWidth = 4;
+    const h = this.cageHalf;
+    r.strokeRect(this.cage.x - h, this.cage.y - h, h * 2, h * 2);
+    r.beginPath();
+    for (let i = 1; i < 5; i++) {
+      const x = this.cage.x - h + (i * 2 * h) / 5;
+      r.moveTo(x, this.cage.y - h);
+      r.lineTo(x, this.cage.y + h);
+    }
+    r.stroke();
+    r.lineWidth = 6;
+    r.beginPath();
+    r.arc(this.cage.x, this.cage.y - h - 10, 8, Math.PI, 0);
+    r.stroke();
+  }
+
+  input(input: ModuleInput): void {
+    if (input.type === 'move') {
+      this.pointerTarget = null;
+      this.moveVel = { x: this.moveVel.x + input.dx * 180, y: this.moveVel.y + input.dy * 180 };
+    } else if (input.type === 'pointer') {
+      this.pointerTarget = input.down ? clampToArea(this.ctx, { x: input.x, y: input.y }, 16) : null;
+    } else if (input.type === 'action') {
+      if (this.probeVisible && !this.probeHitThisWindow) {
+        this.probeHitThisWindow = true;
+        this.probesHit += 1;
+        this.score += 5;
+      }
+    }
+  }
+
+  resize(width: number, height: number): void {
+    this.ctx = { ...this.ctx, width, height };
+    this.bird = clampToArea(this.ctx, this.bird, 16);
+    this.cage = clampToArea(this.ctx, this.cage, this.cageHalf);
+    this.cageTarget = clampToArea(this.ctx, this.cageTarget, this.cageHalf);
+  }
+
+  renderOverrides(base: RenderOptions): RenderOptions {
+    const dominant = this.ctx.calibration.contrastBalance.dominantEye;
+    const weak = dominant === 'right' ? 'left' : 'right';
+    return { ...base, contrast: { ...base.contrast, [dominant]: this.ctx.intensityValue, [weak]: 1 } };
+  }
+
+  hud(): HudState {
+    return { promptKey: this.promptKey, score: Math.round(this.score), roundProgress: null };
+  }
+
+  metrics(): Record<string, number> {
+    return {
+      timeInCageFraction: this.elapsedMs > 0 ? this.timeInCageMs / this.elapsedMs : 0,
+      probesShown: this.probesShown,
+      probesHit: this.probesHit,
+      probeHitRate: this.probesShown > 0 ? this.probesHit / this.probesShown : 0,
+      score: Math.round(this.score),
+      birdToCageMeanPx: distance(this.bird, this.cage),
+    };
+  }
+
+  stop(): void {
+    this.pointerTarget = null;
+  }
+}
+
+export const l1Module: ModuleDefinition = {
+  id: 'l1',
+  code: 'L1',
+  minMinutes: 2,
+  maxMinutes: 4,
+  defaultMinutes: 3,
+  intensity,
+  implemented: true,
+  create: (ctx) => new L1Instance(ctx),
+};
