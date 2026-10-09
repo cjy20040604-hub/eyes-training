@@ -666,8 +666,12 @@ export function CalibrationWizard() {
               <tr>
                 <th>{t('calibration.review.channels')}</th>
                 <td>
-                  L: {channels.left.channel} (gain {channels.left.gain.toFixed(2)}) · R:{' '}
-                  {channels.right.channel} (gain {channels.right.gain.toFixed(2)})
+                  {t('calibration.review.channelLine', {
+                    left: t(`calibration.glasses.${channels.left.channel}`),
+                    leftGain: channels.left.gain.toFixed(2),
+                    right: t(`calibration.glasses.${channels.right.channel}`),
+                    rightGain: channels.right.gain.toFixed(2),
+                  })}
                 </td>
               </tr>
               <tr>
@@ -680,7 +684,7 @@ export function CalibrationWizard() {
                   dx {round(leftT.dx, 1)} px, dy {round(leftT.dy, 1)} px, {round(leftT.rotationDeg, 2)}° (≈{' '}
                   {round(offsetDelta, 2)}Δ)
                   {useClinical
-                    ? ` · ${t('calibration.review.clinical', { delta: prism.amountDelta, base: prism.base })}`
+                    ? `; ${t('calibration.review.clinical', { delta: prism.amountDelta, base: prism.base })}`
                     : ''}
                 </td>
               </tr>

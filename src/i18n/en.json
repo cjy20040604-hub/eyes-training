@@ -32,7 +32,9 @@
     "body": "This is a personal wellness / self-experiment tool for an adult under clinical supervision. It does not diagnose, treat, cure or prevent any condition. Not for children without clinician supervision. All data stays on this device. Stop if you see double or feel unwell, and consult an orthoptist or ophthalmologist."
   },
   "safety": {
-    "stopButton": "STOP — double vision / unwell"
+    "stopButton": "STOP: double vision or unwell",
+    "stopWord": "STOP",
+    "stopReason": "double vision / unwell"
   },
   "symptoms": {
     "frequency": {
@@ -126,7 +128,7 @@
   "training": {
     "blockedTitle": "Training not available right now",
     "blockedIntro": "This module cannot start because:",
-    "preTitle": "{{code}} · {{name}} — pre-session check",
+    "preTitle": "{{code}} {{name}}: before you start",
     "preInfo": "This session will run for up to {{minutes}} minutes. Sit at your calibrated distance ({{distance}} cm), habitual head posture, glasses on.",
     "postureNote": "Posture / viewing note for this session",
     "postureHint": "e.g. 'chin down slightly, head tilted left as usual, 60 cm'.",
@@ -289,7 +291,31 @@
     "week": "Last 7 days",
     "flagDay": "Safety event on this day",
     "restDays": "Rest days are never penalised. Consistency matters more than volume.",
-    "phase2Hint": "L3–L5 and the video module arrive in Phase 2 and unlock only after stable, comfortable L1–L2 sessions."
+    "phase2Hint": "L3–L5 and the video module arrive in Phase 2 and unlock only after stable, comfortable L1–L2 sessions.",
+    "todayTitle": "Today's training",
+    "summary": "{{done}} of {{planned}} planned minutes done.",
+    "limit": "Daily limit {{cap}} min",
+    "meterLabel": "{{done}} minutes trained today, {{planned}} planned, daily limit {{cap}} minutes",
+    "legendDone": "Trained today",
+    "legendPlanned": "Still planned",
+    "legendSpare": "Spare within the limit",
+    "startNext": "Start {{code}} {{name}}",
+    "nextHint": "{{minutes}} min. Put your glasses on first.",
+    "allDone": "Today's plan is done. Rest is part of training.",
+    "planTitle": "Today's plan",
+    "laterTitle": "Later stages",
+    "facts": "Intensity: {{tier}}. {{metric}} {{value}}. Game level {{game}} of 5.",
+    "minutes": "{{n}} min",
+    "doneToday": "Done for today",
+    "notInPlan": "Not in today's plan",
+    "trainAgain": "Train again",
+    "comingLater": "Arrives in phase 2.",
+    "unlockProgress": "{{sessions}} of {{needed}} comfortable sessions, {{days}} of {{neededDays}} days",
+    "unlockReady": "Session requirement met",
+    "dayLabel": "{{day}}: {{minutes}} minutes",
+    "runCalibration": "Run the calibration wizard",
+    "setUpCalibration": "Set up calibration",
+    "setUpHint": "About 10 minutes. You need your red-cyan glasses and a bank card."
   },
   "module": {
     "intensityMap": "Intensity mapping",
@@ -304,7 +330,8 @@
     "intensityStepHint": "The target is approached one step per session, never in a jump.",
     "currentProgress": "Current: {{value}} ({{tier}}), game difficulty {{game}}/5.",
     "history": "Session history",
-    "noSessions": "No sessions yet."
+    "noSessions": "No sessions yet.",
+    "sessionIntensity": "{{tier}}, {{value}}, game level {{game}}"
   },
   "history": {
     "title": "History",
@@ -470,7 +497,7 @@
     },
     "contrast": {
       "intro": "Two bars: the left one for your LEFT eye, the right one for your RIGHT eye. Say which looks stronger / brighter. The right eye's contrast steps down until they look equal (Mansouri / Thompson / Hess balance point). Left stays at 100%.",
-      "current": "Right-eye contrast now {{value}}% · {{trials}} judgements · {{reversals}} reversals",
+      "current": "Right-eye contrast now {{value}}%. {{trials}} judgements so far, {{reversals}} reversals.",
       "leftStronger": "Left looks stronger",
       "equal": "They look equal",
       "rightStronger": "Right looks stronger",
@@ -484,7 +511,8 @@
       "offset": "Left-eye offset",
       "clinical": "clinical {{delta}}Δ base-{{base}}",
       "balance": "Right-eye balance contrast",
-      "save": "Save profile and activate"
+      "save": "Save profile and activate",
+      "channelLine": "Left eye {{left}} (gain {{leftGain}}), right eye {{right}} (gain {{rightGain}})"
     }
   }
 }

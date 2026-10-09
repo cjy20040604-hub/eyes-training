@@ -32,7 +32,9 @@
     "body": "本应用是供成年人在临床医生指导下使用的个人健康 / 自我探索工具，不诊断、不治疗、不治愈、不预防任何疾病。儿童须在临床医生监督下使用。所有数据仅保存在本设备。如出现复视或不适，请立即停止并咨询视轴矫正师或眼科医生。"
   },
   "safety": {
-    "stopButton": "停止 — 复视 / 不适"
+    "stopButton": "停止：复视或不适",
+    "stopWord": "停止",
+    "stopReason": "复视 / 不适"
   },
   "symptoms": {
     "frequency": {
@@ -126,7 +128,7 @@
   "training": {
     "blockedTitle": "当前无法训练",
     "blockedIntro": "该模块无法开始，原因：",
-    "preTitle": "{{code}} · {{name}} — 训练前检查",
+    "preTitle": "{{code}} {{name}}：开始前检查",
     "preInfo": "本次训练最多 {{minutes}} 分钟。请坐在校准距离（{{distance}} 厘米），习惯头位，戴好眼镜。",
     "postureNote": "本次的头位 / 观看备注",
     "postureHint": "例如“下巴略低，头照常左倾，60 厘米”。",
@@ -289,7 +291,31 @@
     "week": "最近 7 天",
     "flagDay": "当天有安全事件",
     "restDays": "休息日不会被扣分。规律比总量更重要。",
-    "phase2Hint": "L3–L5 和视频模块将在第二阶段提供，且仅在稳定舒适的 L1–L2 训练之后解锁。"
+    "phase2Hint": "L3–L5 和视频模块将在第二阶段提供，且仅在稳定舒适的 L1–L2 训练之后解锁。",
+    "todayTitle": "今天的训练",
+    "summary": "计划 {{planned}} 分钟，已完成 {{done}} 分钟。",
+    "limit": "每日上限 {{cap}} 分钟",
+    "meterLabel": "今天已训练 {{done}} 分钟，计划 {{planned}} 分钟，每日上限 {{cap}} 分钟",
+    "legendDone": "今天已练",
+    "legendPlanned": "还需完成",
+    "legendSpare": "上限内余量",
+    "startNext": "开始 {{code}} {{name}}",
+    "nextHint": "{{minutes}} 分钟。请先戴好眼镜。",
+    "allDone": "今天的计划已完成。休息也是训练的一部分。",
+    "planTitle": "今天的计划",
+    "laterTitle": "后续阶段",
+    "facts": "强度{{tier}}：{{metric}} {{value}}。游戏难度 {{game}}/5。",
+    "minutes": "{{n}} 分钟",
+    "doneToday": "今天已完成",
+    "notInPlan": "不在今天的计划中",
+    "trainAgain": "再练一次",
+    "comingLater": "第二阶段推出。",
+    "unlockProgress": "舒适训练 {{sessions}}/{{needed}} 次，{{days}}/{{neededDays}} 天",
+    "unlockReady": "训练次数要求已满足",
+    "dayLabel": "{{day}}：{{minutes}} 分钟",
+    "runCalibration": "运行校准向导",
+    "setUpCalibration": "设置校准",
+    "setUpHint": "约 10 分钟。需要红青眼镜和一张银行卡。"
   },
   "module": {
     "intensityMap": "强度映射",
@@ -304,7 +330,8 @@
     "intensityStepHint": "目标每次训练逐步逼近，从不跳跃。",
     "currentProgress": "当前：{{value}}（{{tier}}），游戏难度 {{game}}/5。",
     "history": "训练历史",
-    "noSessions": "还没有训练记录。"
+    "noSessions": "还没有训练记录。",
+    "sessionIntensity": "{{tier}}，{{value}}，游戏难度 {{game}}"
   },
   "history": {
     "title": "历史",
@@ -470,7 +497,7 @@
     },
     "contrast": {
       "intro": "两根竖条：左边给左眼，右边给右眼。说出哪根看起来更强 / 更亮。右眼对比度逐步下降，直到两者看起来相同（Mansouri / Thompson / Hess 平衡点）。左眼始终 100%。",
-      "current": "右眼对比度当前 {{value}}% · {{trials}} 次判断 · {{reversals}} 次反转",
+      "current": "右眼对比度当前 {{value}}%。已判断 {{trials}} 次，反转 {{reversals}} 次。",
       "leftStronger": "左边更强",
       "equal": "看起来一样",
       "rightStronger": "右边更强",
@@ -484,7 +511,8 @@
       "offset": "左眼偏移",
       "clinical": "临床 {{delta}}Δ 基底{{base}}",
       "balance": "右眼平衡对比度",
-      "save": "保存档案并激活"
+      "save": "保存档案并激活",
+      "channelLine": "左眼{{left}}（增益 {{leftGain}}），右眼{{right}}（增益 {{rightGain}}）"
     }
   }
 }

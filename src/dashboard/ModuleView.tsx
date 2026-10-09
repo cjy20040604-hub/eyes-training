@@ -38,9 +38,15 @@ export function ModuleView() {
 
   return (
     <div>
-      <h1>
-        {def.code} · {t(`modules.${id}.name`)}
-      </h1>
+      <div className="module-head">
+        <span className="code-badge" aria-hidden="true">
+          {def.code}
+        </span>
+        <h1>
+          <span className="sr-only">{def.code} </span>
+          {t(`modules.${id}.name`)}
+        </h1>
+      </div>
       <p>{t(`modules.${id}.description`)}</p>
       <Card title={t('module.intensityMap')}>
         <p className="hint">{t('module.intensityHint')}</p>
@@ -128,7 +134,7 @@ export function ModuleView() {
           ) : (
             <span className="hint">
               {def.implemented
-                ? gate.reasons.map((r) => t(`gate.${r}`)).join(' · ')
+                ? gate.reasons.map((r) => t(`gate.${r}`)).join(' ')
                 : t('gate.not-implemented')}
             </span>
           )}
@@ -156,8 +162,11 @@ export function ModuleView() {
                     <td>{new Date(s.startedAt).toLocaleString()}</td>
                     <td>{s.actualMinutes.toFixed(1)}</td>
                     <td>
-                      {t(`intensity.${s.intensityTier}`)} · {def.intensity.format(s.intensityValue)} · G
-                      {s.gameDifficulty}
+                      {t('module.sessionIntensity', {
+                        tier: t(`intensity.${s.intensityTier}`),
+                        value: def.intensity.format(s.intensityValue),
+                        game: s.gameDifficulty,
+                      })}
                     </td>
                     <td>{t(`status.${s.status}`)}</td>
                     <td>

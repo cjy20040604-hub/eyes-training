@@ -1,6 +1,6 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HashRouter, NavLink, Route, Routes, useParams } from 'react-router-dom';
+import { HashRouter, NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { CalibrationWizard } from './calibration/Wizard';
 import { History } from './dashboard/History';
@@ -14,6 +14,22 @@ import { DisclaimerScreen } from './safety/DisclaimerScreen';
 import { recoverInProgressSessions } from './safety/session';
 import { TrainingShell } from './safety/TrainingShell';
 import { Banner, Button, Footer } from './ui';
+
+/** Two lens outlines; the overlap where both eyes' images meet is filled. Ink only. */
+function FusionMark() {
+  return (
+    <svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true" focusable="false">
+      <defs>
+        <clipPath id="fusion-left">
+          <circle cx="12" cy="11" r="9" />
+        </clipPath>
+      </defs>
+      <circle cx="22" cy="11" r="9" fill="currentColor" clipPath="url(#fusion-left)" />
+      <circle cx="12" cy="11" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+      <circle cx="22" cy="11" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
 
 /**
  * A fresh training screen per module: moving from /train/l1 to /train/l2 (e.g. with the
@@ -96,7 +112,10 @@ function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <span className="brand">{t('app.name')}</span>
+        <NavLink to="/" className="brand" end>
+          <FusionMark />
+          {t('app.name')}
+        </NavLink>
         <nav aria-label="main">
           <NavLink to="/" end>
             {t('nav.overview')}
@@ -117,10 +136,26 @@ function Layout({ children }: { children: ReactNode }) {
   );
 }
 
+/** Each page starts at the top, instead of keeping the previous page's scroll position. */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function Gate({ children }: { children: ReactNode }) {
   const settings = useSettings();
   if (!disclaimerAccepted(settings)) {
-    return <DisclaimerScreen onAccept={settings.acceptDisclaimer} />;
+    return (
+      <DisclaimerScreen
+        onAccept={() => {
+          settings.acceptDisclaimer();
+          window.scrollTo(0, 0);
+        }}
+      />
+    );
   }
   return <>{children}</>;
 }
@@ -129,6 +164,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <HashRouter>
+        <ScrollToTop />
         <Layout>
           <Gate>
             <Routes>

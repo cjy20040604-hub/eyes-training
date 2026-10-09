@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here. Versions follow SemVer; releases are git tags `vX.Y.Z`.
 
+## [0.1.2] — 2026-10-09
+
+### Changed
+
+- Visual redesign of the app chrome (training stimulus unchanged): slate ink on cool "record paper", one cobalt accent, red and cyan reserved for the stimulus; automatic dark mode.
+- Self-hosted Atkinson Hyperlegible Next (designed for low-vision readers; OFL-1.1), with the system Chinese font as fallback.
+- Overview rebuilt around today: date, minutes summary, one "Start next module" button, and a prism-bar meter of trained / planned / spare minutes up to the daily limit. Modules are ledger rows instead of identical cards; later stages are compact rows with unlock progress; the week is a minute bar chart.
+- First run: the main button is "Set up calibration" until a profile exists.
+- STOP button shows "STOP" large with the reason underneath; module titles use a code badge instead of "L1 · …".
+- Destructive buttons are outlined; wizard step tabs and section rules tidied.
+
+### Fixed
+
+- Pages, including the overview after accepting the disclaimer, now open at the top instead of keeping the previous scroll position.
+- Start links were rendered underlined.
+
 ## [0.1.1] — 2026-10-09
 
 ### Fixed

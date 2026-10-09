@@ -20,7 +20,7 @@ async function acceptDisclaimer(page: Page) {
   await page.goto('/');
   for (const id of ['ack-1', 'ack-2', 'ack-3', 'ack-4']) await page.getByTestId(id).check();
   await page.getByTestId('accept-disclaimer').click();
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "Today's training" })).toBeVisible();
 }
 
 async function runWizard(page: Page) {
@@ -53,7 +53,7 @@ async function runWizard(page: Page) {
   await page.getByRole('button', { name: 'They look equal' }).click();
   await next.click(); // contrast
   await page.getByTestId('wizard-save').click();
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "Today's training" })).toBeVisible();
 }
 
 async function setShortSessions(page: Page) {
@@ -194,8 +194,7 @@ async function playL2(page: Page) {
 
 async function gameDifficultyOnOverview(page: Page, code: 'L1' | 'L2'): Promise<string> {
   await page.goto('/#/');
-  const card = page.locator('section.card', { hasText: `${code} ·` });
-  return (await card.locator('tr', { hasText: 'Game difficulty' }).textContent()) ?? '';
+  return (await page.getByTestId(`game-level-${code.toLowerCase()}`).textContent()) ?? '';
 }
 
 test('three days of L1 + L2 training: play, complete, progress, unlock gate', async ({ page }) => {
@@ -210,13 +209,13 @@ test('three days of L1 + L2 training: play, complete, progress, unlock gate', as
   const l2Day1 = await playL2(page);
   expect(l2Day1).toContain('Game difficulty for the next session: 2/5');
   await page.goto('/#/');
-  const l3Card = page.locator('section.card', { hasText: 'L3 ·' });
-  await expect(l3Card).toContainText('(2/6, 1/3 days)');
+  const l3Card = page.getByTestId('later-l3');
+  await expect(l3Card).toContainText('2 of 6 comfortable sessions, 1 of 3 days');
 
   // ---- Day 2: the previous problem day ----
   await page.clock.setSystemTime(DAY(2));
-  expect(await gameDifficultyOnOverview(page, 'L1')).toContain('2 / 5');
-  expect(await gameDifficultyOnOverview(page, 'L2')).toContain('2 / 5');
+  expect(await gameDifficultyOnOverview(page, 'L1')).toContain('Game level 2 of 5');
+  expect(await gameDifficultyOnOverview(page, 'L2')).toContain('Game level 2 of 5');
   expect(await playL1(page)).toContain('Game difficulty for the next session: 3/5');
   expect(await playL2(page)).toContain('Game difficulty for the next session: 3/5');
 
@@ -230,10 +229,10 @@ test('three days of L1 + L2 training: play, complete, progress, unlock gate', as
 
   // 6 clean sessions on 3 days: the L3 gate no longer asks for more sessions.
   await page.goto('/#/');
-  await expect(l3Card).toContainText('ships in Phase 2');
-  await expect(l3Card).not.toContainText('Unlocks after 6');
+  await expect(l3Card).toContainText('Arrives in phase 2');
+  await expect(l3Card).toContainText('Session requirement met');
   // L4 (vergence) additionally still needs clinician agreement.
-  await expect(page.locator('section.card', { hasText: 'L4 ·' })).toContainText('clinician agreement');
+  await expect(page.getByTestId('later-l4')).toContainText('clinician agreement');
 
   // History shows all six completed sessions.
   await page.goto('/#/history');

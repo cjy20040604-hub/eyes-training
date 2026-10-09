@@ -185,7 +185,7 @@ export function SettingsPage() {
                 </td>
                 <td>{new Date(c.createdAt).toLocaleDateString()}</td>
                 <td>
-                  {c.device.ppi} PPI · {c.viewingDistanceCm} cm
+                  {c.device.ppi} PPI, {c.viewingDistanceCm} cm
                 </td>
                 <td className="row">
                   <Button

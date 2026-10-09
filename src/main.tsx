@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { useSettings } from './data/settingsStore';
 import { detectLocale, initI18n } from './i18n';
+import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
 import './styles.css';
 
 const settings = useSettings.getState();

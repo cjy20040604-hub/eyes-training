@@ -198,7 +198,9 @@ export function Footer() {
   const { t } = useTranslation();
   return (
     <footer className="app-footer">
-      <strong>{t('footer.notMedical')}</strong> {t('footer.body')}
+      <p>
+        <strong>{t('footer.notMedical')}</strong> {t('footer.body')}
+      </p>
     </footer>
   );
 }

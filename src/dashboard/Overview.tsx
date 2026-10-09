@@ -1,37 +1,134 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useActiveCalibration, useAllData } from '../data/hooks';
-import { DISCLAIMER_VERSION, type ModuleId } from '../data/schema';
+import { DISCLAIMER_VERSION, type SessionRecord } from '../data/schema';
 import { useSettings } from '../data/settingsStore';
 import { dayKey, dayKeyOffset } from '../data/util';
 import { MODULES } from '../modules/registry';
-import { isDailyCapReached, minutesUsedOnDay, remainingDailyMinutes } from '../safety/caps';
-import { evaluateGate } from '../safety/gating';
-import { Banner, Card, Progress, Stat } from '../ui';
+import type { ModuleDefinition } from '../modules/types';
+import { isDailyCapReached, minutesUsedOnDay } from '../safety/caps';
+import { evaluateGate, type GateResult } from '../safety/gating';
+import { Banner, Progress } from '../ui';
+
+const wholeMinutes = (m: number) => Math.round(m);
+
+function localeTag(lng: string): string {
+  return lng === 'zh-Hans' ? 'zh-CN' : 'en-GB';
+}
+
+function dateFromKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y!, (m ?? 1) - 1, d ?? 1);
+}
+
+/**
+ * The prism bar: one graduated step per minute up to the daily limit, rising left to right
+ * like an orthoptist's prism bar. Filled = trained today, outlined = still planned.
+ */
+function PrismBar({ done, planned, cap }: { done: number; planned: number; cap: number }) {
+  const { t } = useTranslation();
+  const steps = Math.max(1, Math.round(cap));
+  const doneSteps = Math.min(steps, wholeMinutes(done));
+  const plannedSteps = Math.min(steps, Math.max(doneSteps, wholeMinutes(planned)));
+  return (
+    <div className="meter">
+      <div
+        className={`prism-bar ${doneSteps >= steps ? 'capped' : ''}`}
+        role="img"
+        aria-label={t('overview.meterLabel', { done: doneSteps, planned: plannedSteps, cap: steps })}
+      >
+        {Array.from({ length: steps }, (_, i) => {
+          const n = i + 1;
+          const kind = n <= doneSteps ? 'done' : n <= plannedSteps ? 'planned' : 'spare';
+          return <span key={n} className={`step ${kind}`} style={{ height: `${30 + (70 * n) / steps}%` }} />;
+        })}
+      </div>
+      <div className="prism-scale" aria-hidden="true">
+        <span>{t('overview.limit', { cap: steps })}</span>
+      </div>
+      <div className="legend" aria-hidden="true">
+        <span>
+          <i className="done" />
+          {t('overview.legendDone')}
+        </span>
+        <span>
+          <i className="planned" />
+          {t('overview.legendPlanned')}
+        </span>
+        <span>
+          <i className="spare" />
+          {t('overview.legendSpare')}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+interface RowModel {
+  def: ModuleDefinition;
+  gate: GateResult;
+  plannedMinutes: number;
+  enabled: boolean;
+  doneMinutes: number;
+  isDone: boolean;
+  startable: boolean;
+}
 
 export function Overview() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const settings = useSettings();
   const all = useAllData();
   const { calibration } = useActiveCalibration();
   const today = dayKey();
-  const sessions = all.data?.sessions ?? [];
+  const sessions: SessionRecord[] = all.data?.sessions ?? [];
   const checks = all.data?.checks ?? [];
+  const cap = settings.caps.dailyCapMinutes;
   const used = minutesUsedOnDay(sessions, today);
-  const remaining = remainingDailyMinutes(settings.caps, used);
   const capReached = isDailyCapReached(settings.caps, used);
-  const plannedTotal = Object.values(settings.dailyPlan).reduce((a, p) => a + (p.enabled ? p.minutes : 0), 0);
+  const locale = localeTag(i18n.language);
+
+  const rows: RowModel[] = MODULES.map((def) => {
+    const plan = settings.dailyPlan[def.id] ?? { minutes: 0, intensityTier: 'low' as const, enabled: false };
+    const doneMinutes = sessions
+      .filter((s) => s.moduleId === def.id && s.day === today)
+      .reduce((a, s) => a + s.actualMinutes, 0);
+    const gate = evaluateGate(def.id, { settings, sessions, checks, disclaimerVersion: DISCLAIMER_VERSION });
+    const enabled = plan.enabled && def.implemented;
+    const plannedMinutes = enabled ? plan.minutes : 0;
+    return {
+      def,
+      gate,
+      plannedMinutes,
+      enabled,
+      doneMinutes,
+      isDone: enabled && plannedMinutes > 0 && doneMinutes >= plannedMinutes - 0.05,
+      startable: def.implemented && gate.unlocked && !capReached && enabled,
+    };
+  });
+  const current = rows.filter((r) => r.def.implemented);
+  const later = rows.filter((r) => !r.def.implemented);
+  const plannedTotal = current.reduce((a, r) => a + r.plannedMinutes, 0);
+  const next = current.find((r) => r.startable && !r.isDone) ?? null;
+  const planDone = current.some((r) => r.enabled) && current.every((r) => !r.enabled || r.isDone);
+
+  const longDate = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(
+    new Date(),
+  );
 
   const days = Array.from({ length: 7 }, (_, i) => dayKeyOffset(i - 6));
-  const flagsByDay = new Map<string, boolean>();
+  const flagged = new Set<string>();
   for (const ev of all.data?.safetyEvents ?? []) {
     if (ev.type === 'red-flag' || ev.type === 'stop' || ev.type === 'flash-pause')
-      flagsByDay.set(ev.at.slice(0, 10), true);
+      flagged.add(ev.at.slice(0, 10));
   }
+  const dayMinutes = days.map((d) =>
+    sessions.filter((s) => s.day === d).reduce((a, s) => a + s.actualMinutes, 0),
+  );
+  const scaleMax = Math.max(cap, ...dayMinutes);
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: 'short' });
 
   return (
     <div>
-      <h1>{t('overview.title')}</h1>
       {settings.trainingLock.locked ? (
         <Banner tone="danger" title={t('overview.trainingLocked')}>
           <Link to="/red-flag">{t('overview.openRedFlag')}</Link>
@@ -42,133 +139,194 @@ export function Overview() {
           {t('training.progressionLockBody')}
         </Banner>
       ) : null}
-      {!calibration ? (
-        <Banner tone="info" title={t('overview.noCalibration')}>
-          <Link to="/calibration">{t('nav.calibration')}</Link>
-        </Banner>
-      ) : null}
-
-      <Card title={t('overview.today')}>
-        <div className="row" style={{ gap: 32 }}>
-          <Stat label={t('overview.plannedMinutes')} value={plannedTotal} />
-          <Stat label={t('overview.actualMinutes')} value={used.toFixed(1)} />
-          <Stat label={t('overview.remaining')} value={remaining.toFixed(1)} />
-          <Stat label={t('overview.dailyCap')} value={settings.caps.dailyCapMinutes} />
+      <section className="today" aria-labelledby="today-title">
+        <div>
+          <p className="date">{longDate}</p>
+          <h1 id="today-title">{t('overview.todayTitle')}</h1>
+          <p className="summary" data-testid="today-summary">
+            {t('overview.summary', { done: wholeMinutes(used), planned: plannedTotal })}
+          </p>
         </div>
-        <div style={{ marginTop: 12 }}>
-          <Progress
-            value={used}
-            max={settings.caps.dailyCapMinutes}
-            tone={capReached ? 'danger' : used / settings.caps.dailyCapMinutes > 0.8 ? 'warn' : undefined}
-          />
+        <div className="next">
+          {!calibration && !all.loading ? (
+            <>
+              <Link className="btn primary" to="/calibration" data-testid="start-calibration">
+                {t('overview.setUpCalibration')}
+              </Link>
+              <span className="hint">{t('overview.setUpHint')}</span>
+            </>
+          ) : capReached ? (
+            <Banner tone="danger" title={t('overview.capReached')} role="status">
+              {t('overview.capReachedBody')}
+            </Banner>
+          ) : next ? (
+            <>
+              <Link className="btn primary" to={`/train/${next.def.id}`} data-testid="start-next">
+                {t('overview.startNext', { code: next.def.code, name: t(`modules.${next.def.id}.name`) })}
+              </Link>
+              <span className="hint">{t('overview.nextHint', { minutes: next.plannedMinutes })}</span>
+            </>
+          ) : planDone ? (
+            <p className="done-mark">{t('overview.allDone')}</p>
+          ) : null}
         </div>
-        {capReached ? (
-          <Banner tone="danger" title={t('overview.capReached')} role="status">
-            {t('overview.capReachedBody')}
-          </Banner>
-        ) : null}
-      </Card>
+        <PrismBar done={used} planned={plannedTotal} cap={cap} />
+      </section>
 
-      <div className="grid">
-        {MODULES.map((m) => {
-          const plan = settings.dailyPlan[m.id] ?? {
-            minutes: 0,
-            intensityTier: 'low' as const,
-            enabled: false,
-          };
-          const actual = sessions
-            .filter((s) => s.moduleId === m.id && s.day === today)
-            .reduce((a, s) => a + s.actualMinutes, 0);
-          const gate = evaluateGate(m.id, {
-            settings,
-            sessions,
-            checks,
-            disclaimerVersion: DISCLAIMER_VERSION,
-          });
-          const progress = settings.moduleProgress[m.id];
-          const intensityValue =
+      <h2 className="section-title">{t('overview.planTitle')}</h2>
+      <ul className="plan-list">
+        {current.map((r) => {
+          const progress = settings.moduleProgress[r.def.id];
+          const plan = settings.dailyPlan[r.def.id];
+          const tier = progress?.intensityTier ?? plan?.intensityTier ?? 'low';
+          const value =
             progress?.intensityValue ??
-            (calibration ? m.intensity.valueForTier(plan.intensityTier, calibration) : null);
-          const startable = m.implemented && gate.unlocked && !capReached && plan.enabled;
+            (calibration ? r.def.intensity.valueForTier(tier, calibration) : null);
+          const blockReasons = r.gate.reasons.filter((x) => x !== 'disclaimer');
           return (
-            <Card key={m.id} title={`${m.code} · ${t(`modules.${m.id}.name`)}`} muted={!m.implemented}>
-              <p className="hint">{t(`modules.${m.id}.tagline`)}</p>
-              <table>
-                <tbody>
-                  <tr>
-                    <th>{t('overview.duration')}</th>
-                    <td>
-                      {actual.toFixed(1)} / {plan.enabled ? plan.minutes : 0} min
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>{t('overview.intensity')}</th>
-                    <td>
-                      {t(`intensity.${progress?.intensityTier ?? plan.intensityTier}`)}
-                      {intensityValue !== null
-                        ? ` · ${t(`metrics.${m.intensity.metric}`)} ${m.intensity.format(intensityValue)}`
-                        : ''}
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>{t('overview.gameDifficulty')}</th>
-                    <td>{progress?.gameDifficulty ?? 1} / 5</td>
-                  </tr>
-                </tbody>
-              </table>
-              {!m.implemented ? <p className="hint">{t('gate.not-implemented')}</p> : null}
-              {!gate.unlocked ? (
-                <p className="hint">
-                  {gate.reasons.map((r) => t(`gate.${r}`)).join(' · ')}
-                  {gate.reasons.includes('needs-stable-sessions') ||
-                  gate.reasons.includes('needs-distinct-days')
-                    ? ` (${gate.stableSessions}/${gate.needed}, ${gate.distinctDays}/${gate.neededDays} ${t('overview.days')})`
-                    : ''}
+            <li
+              key={r.def.id}
+              className={`module-row ${r.isDone ? 'done' : ''}`}
+              data-testid={`module-row-${r.def.id}`}
+            >
+              <span className="code-badge" aria-hidden="true">
+                {r.def.code}
+              </span>
+              <div>
+                <h3>
+                  <span className="sr-only">{r.def.code} </span>
+                  {t(`modules.${r.def.id}.name`)}
+                </h3>
+                <p className="what">{t(`modules.${r.def.id}.tagline`)}</p>
+                <p className="facts" data-testid={`game-level-${r.def.id}`}>
+                  {t('overview.facts', {
+                    tier: t(`intensity.${tier}`),
+                    metric: t(`metrics.${r.def.intensity.metric}`),
+                    value: value === null ? '—' : r.def.intensity.format(value),
+                    game: progress?.gameDifficulty ?? 1,
+                  })}
                 </p>
-              ) : null}
-              <div className="row">
-                <Link className="btn" to={`/module/${m.id}`}>
-                  {t('overview.details')}
-                </Link>
-                {startable ? (
-                  <Link className="btn primary" to={`/train/${m.id}`} data-testid={`start-${m.id}`}>
-                    {t('overview.start')}
-                  </Link>
+                {blockReasons.length ? (
+                  <p className="facts">{blockReasons.map((x) => t(`gate.${x}`)).join(' ')}</p>
                 ) : null}
               </div>
-            </Card>
+              <div className="side">
+                {r.enabled ? (
+                  <span className="minutes">
+                    {wholeMinutes(r.doneMinutes)}{' '}
+                    <small>/ {t('overview.minutes', { n: r.plannedMinutes })}</small>
+                  </span>
+                ) : (
+                  <span className="hint">{t('overview.notInPlan')}</span>
+                )}
+                {r.isDone ? <span className="done-mark">{t('overview.doneToday')}</span> : null}
+                <div className="row">
+                  {r.startable ? (
+                    <Link
+                      className={`btn ${r === next ? 'primary' : ''}`}
+                      to={`/train/${r.def.id}`}
+                      data-testid={`start-${r.def.id}`}
+                    >
+                      {r.isDone ? t('overview.trainAgain') : t('overview.start')}
+                    </Link>
+                  ) : null}
+                  <Link className="btn ghost" to={`/module/${r.def.id}`}>
+                    {t('overview.details')}
+                  </Link>
+                </div>
+              </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
-      <Card title={t('overview.week')}>
-        <div className="week">
-          {days.map((d) => {
-            const mins = sessions.filter((s) => s.day === d).reduce((a, s) => a + s.actualMinutes, 0);
-            return (
-              <div key={d} className={`day ${flagsByDay.get(d) ? 'flag' : ''}`}>
-                <div>{d.slice(5)}</div>
-                <div>{mins.toFixed(0)} min</div>
+      <div className="lower">
+        <section aria-labelledby="week-title">
+          <h2 className="section-title" id="week-title">
+            {t('overview.week')}
+          </h2>
+          <div className="week-chart" role="list">
+            {days.map((d, i) => {
+              const mins = dayMinutes[i] ?? 0;
+              const label = weekday.format(dateFromKey(d));
+              const isToday = d === today;
+              return (
                 <div
-                  className="bar"
-                  style={{ width: `${Math.min(100, (mins / settings.caps.dailyCapMinutes) * 100)}%` }}
-                />
-                {flagsByDay.get(d) ? <div aria-label={t('overview.flagDay')}>⚑</div> : null}
-              </div>
-            );
-          })}
-        </div>
-        <p className="hint" style={{ marginTop: 8 }}>
-          {t('overview.restDays')}
-        </p>
-      </Card>
-      <ModuleGateHint ids={MODULES.filter((m) => !m.implemented).map((m) => m.id)} />
+                  key={d}
+                  role="listitem"
+                  className={`col ${mins === 0 ? 'zero' : ''} ${isToday ? 'is-today' : ''}`}
+                  aria-label={t('overview.dayLabel', { day: label, minutes: wholeMinutes(mins) })}
+                >
+                  {flagged.has(d) ? (
+                    <span className="flag" title={t('overview.flagDay')}>
+                      !
+                    </span>
+                  ) : null}
+                  <span className="mins">{wholeMinutes(mins)}</span>
+                  <div className="bar" style={{ height: `${(mins / scaleMax) * 100}%` }} />
+                  <span className="label">{label}</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="hint" style={{ marginTop: 10 }}>
+            {t('overview.restDays')}
+          </p>
+        </section>
+
+        <section aria-labelledby="later-title">
+          <h2 className="section-title" id="later-title">
+            {t('overview.laterTitle')}
+          </h2>
+          <ul className="later-list">
+            {later.map((r) => {
+              const needsSessions =
+                r.gate.reasons.includes('needs-stable-sessions') ||
+                r.gate.reasons.includes('needs-distinct-days');
+              const fraction =
+                (Math.min(r.gate.stableSessions, r.gate.needed) +
+                  Math.min(r.gate.distinctDays, r.gate.neededDays)) /
+                (r.gate.needed + r.gate.neededDays);
+              return (
+                <li key={r.def.id} data-testid={`later-${r.def.id}`}>
+                  <span className="code-badge" aria-hidden="true">
+                    {r.def.code}
+                  </span>
+                  <div>
+                    <strong>
+                      <span className="sr-only">{r.def.code} </span>
+                      {t(`modules.${r.def.id}.name`)}
+                    </strong>
+                    <span className="why">
+                      {t('overview.comingLater')}
+                      {r.gate.reasons.includes('clinician-agreement')
+                        ? ` ${t('gate.clinician-agreement')}`
+                        : ''}
+                    </span>
+                    {needsSessions ? (
+                      <div className="unlock">
+                        <Progress value={fraction} />
+                        <span>
+                          {t('overview.unlockProgress', {
+                            sessions: r.gate.stableSessions,
+                            needed: r.gate.needed,
+                            days: r.gate.distinctDays,
+                            neededDays: r.gate.neededDays,
+                          })}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="unlock">
+                        <span className="done-mark">{t('overview.unlockReady')}</span>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </div>
     </div>
   );
-}
-
-function ModuleGateHint({ ids }: { ids: ModuleId[] }) {
-  const { t } = useTranslation();
-  if (!ids.length) return null;
-  return <p className="hint">{t('overview.phase2Hint')}</p>;
 }

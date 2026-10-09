@@ -60,7 +60,7 @@ export function History() {
                     <td>{def.code}</td>
                     <td>{s.actualMinutes.toFixed(1)}</td>
                     <td>
-                      {t(`intensity.${s.intensityTier}`)} · {def.intensity.format(s.intensityValue)}
+                      {t(`intensity.${s.intensityTier}`)}, {def.intensity.format(s.intensityValue)}
                     </td>
                     <td>{t(`status.${s.status}`)}</td>
                     <td>{pre ? t(`symptoms.frequency.${FREQUENCY_LABELS[pre.diplopia]}`) : '—'}</td>

@@ -447,8 +447,8 @@ export function TrainingShell() {
       <div className="training-screen" data-testid="training-screen">
         <div className="training-hud">
           <StopButton onStop={onStop} disabled={phase !== 'running'} />
-          <span>
-            {def.code} · {t(`modules.${id}.name`)}
+          <span className="hud-title">
+            <b>{def.code}</b> {t(`modules.${id}.name`)}
           </span>
           <span data-testid="hud-timer">
             {Math.floor(elapsedMs / 60000)}:{String(Math.floor((elapsedMs / 1000) % 60)).padStart(2, '0')} /{' '}

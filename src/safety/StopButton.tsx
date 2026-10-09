@@ -25,8 +25,10 @@ export function StopButton({ onStop, disabled }: { onStop: () => void; disabled?
       disabled={disabled}
       data-testid="stop-button"
       aria-keyshortcuts="Escape"
+      aria-label={t('safety.stopButton')}
     >
-      ■ {t('safety.stopButton')}
+      <span className="stop-word">{t('safety.stopWord')}</span>
+      <span className="stop-reason">{t('safety.stopReason')}</span>
     </button>
   );
 }

@@ -60,7 +60,7 @@ async function acceptDisclaimer(page: Page) {
   await expect(page.getByTestId('accept-disclaimer')).toBeDisabled();
   for (const id of ['ack-1', 'ack-2', 'ack-3', 'ack-4']) await page.getByTestId(id).check();
   await page.getByTestId('accept-disclaimer').click();
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "Today's training" })).toBeVisible();
 }
 
 async function importBundle(page: Page, data: unknown) {
