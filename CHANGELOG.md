@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Versions follow SemVer; releases are git tags `vX.Y.Z`.
 
-## [0.1.0] — 2026-09-29 (MVP, Phase 1)
+## [0.1.0] — 2026-09-29 (Phase 1)
 
 ### Added
 

@@ -3,9 +3,11 @@
 [![Open the app / 打开应用](https://img.shields.io/badge/Open%20the%20app-%E6%89%93%E5%BC%80%E5%BA%94%E7%94%A8-2ea44f?style=for-the-badge)](https://cjy20040604-hub.github.io/eyes-training/)
 [![CI](https://github.com/cjy20040604-hub/eyes-training/actions/workflows/ci.yml/badge.svg)](https://github.com/cjy20040604-hub/eyes-training/actions/workflows/ci.yml)
 
-**Live app:** https://cjy20040604-hub.github.io/eyes-training/ (works offline after the first visit; red-cyan glasses needed for training).
+**Live app · 在线应用：** https://cjy20040604-hub.github.io/eyes-training/
 
-**在线应用：** https://cjy20040604-hub.github.io/eyes-training/ （首次打开后可离线使用；训练需要红青立体眼镜）。
+Works offline after the first visit; red-cyan glasses are needed for training.
+
+首次打开后可离线使用；训练需要红青立体眼镜。
 
 A browser-based, fully offline, personal wellness / self-experiment tool for exploring
 simultaneous perception and fusion with red-cyan anaglyph glasses, built for one adult
@@ -18,7 +20,7 @@ treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) firs
 
 **这不是医疗治疗，也不是医疗器械。** 它不诊断、不治疗、不治愈、不预防任何疾病。使用前请先阅读 [docs/SAFETY.md](docs/SAFETY.md)。
 
-## What it does (MVP, Phase 1) · 功能（MVP 第一阶段）
+## What it does (Phase 1) · 功能（第一阶段）
 
 - Safety layer: enforced onboarding disclaimer, always-visible black/white STOP button
   (Esc), pre/post symptom checks (PEDIG/ATS diplopia scale), red-flag lock-out, per-session
