@@ -66,12 +66,22 @@ export class Canvas2dAnaglyphBackend {
       s.clearRect(0, 0, this.scratch.width, this.scratch.height);
       const m = transformToMatrix(options.transforms[eye], width / 2, height / 2);
       // Layer backing store is dpr-scaled; map CSS coords -> device coords.
-      s.setTransform(m[0] * dpr, m[1] * dpr, m[2] * dpr, m[3] * dpr, m[4] * dpr, m[5] * dpr);
-      s.drawImage(layer, 0, 0, layer.width, layer.height, 0, 0, width, height);
-      s.setTransform(1, 0, 0, 1, 0, 0);
-      s.globalCompositeOperation = 'source-in';
+      const drawLayer = () => {
+        s.setTransform(m[0] * dpr, m[1] * dpr, m[2] * dpr, m[3] * dpr, m[4] * dpr, m[5] * dpr);
+        s.drawImage(layer, 0, 0, layer.width, layer.height, 0, 0, width, height);
+        s.setTransform(1, 0, 0, 1, 0, 0);
+      };
+      // 1. The eye's grayscale layer.
+      drawLayer();
+      // 2. Multiply by the channel colour, so each shape keeps its own gray level
+      //    (a 50% frame stays at 50%). 'source-in' would discard luminance.
+      s.globalCompositeOperation = 'multiply';
       s.fillStyle = `rgb(${r},${g},${b})`;
       s.fillRect(0, 0, this.scratch.width, this.scratch.height);
+      // 3. Multiply also painted the empty areas; keep only where the layer has content.
+      s.globalCompositeOperation = 'destination-in';
+      drawLayer();
+      s.globalCompositeOperation = 'source-over';
       ctx.globalCompositeOperation = 'lighter';
       ctx.drawImage(this.scratch, 0, 0);
     }

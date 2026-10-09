@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here. Versions follow SemVer; releases are git tags `vX.Y.Z`.
 
+## [0.1.1] — 2026-10-09
+
+### Fixed
+
+- A single click or tap now moves the ball (L2) or bird (L1). Before, releasing the mouse cancelled the move, so a click did nothing.
+- Arrow keys / WASD now move at a steady speed while held and stop on release (Shift for fine moves), instead of drifting in small jumps.
+- L2 accepts a ball that is visibly inside the ring (tolerance ~30 px instead of ~18 px) and shows a filling progress arc plus a HUD bar while holding.
+- L2: pressing Space when the ball looks inside the ring counts within two ring radii and records the perceived offset (px and Δ); repeated far presses suggest recalibrating.
+- Canvas 2D renderer kept full brightness for every shape; gray levels are now preserved (the shared frame is half brightness, the calibration "A"/"B" letters are visible).
+- Animation no longer stays frozen after the window is hidden; the session pauses with a Resume button, and the timer only counts while the stimulus is drawn.
+- Day-to-day progression now works: after a completed, comfortable session, game difficulty rises one step per day (then visual difficulty within the planned tier); a poor session eases it. Starting a session no longer counts as a difficulty change.
+- A 100% contrast balance no longer labels the intensity "High".
+- Session completion runs once; micro-break countdown no longer double-counts; STOP keeps the session's metrics; strong pre-session symptoms show their own message.
+- Moving between training pages starts a fresh session screen and closes the abandoned session as aborted.
+- Calibration offset step: arrow keys nudge the left-eye image (Shift for 1 px).
+
+### Added
+
+- On-screen control hints for each module, false-alarm count for L1 chicks, and L3–L5 unlock progress on the overview.
+- Tests: module movement and scoring, progression rules, frame-loop resume, and a three-day end-to-end run that plays L1 and L2 through the real UI.
+
 ## [0.1.0] — 2026-09-29 (Phase 1)
 
 ### Added

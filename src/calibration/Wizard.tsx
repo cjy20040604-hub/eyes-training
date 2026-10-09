@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getDb } from '../data/db';
@@ -306,6 +306,28 @@ export function CalibrationWizard() {
   const current = STEPS[step]!;
   const offsetDelta = geometry ? pxToPrismDiopters(Math.hypot(leftT.dx, leftT.dy), geometry) : 0;
 
+  // On the offset step, arrow keys nudge the left-eye image (except while typing in a field).
+  useEffect(() => {
+    if (current !== 'offset') return;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return;
+      const moves: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1],
+      };
+      const m = moves[e.key];
+      if (!m) return;
+      e.preventDefault();
+      const stepPx = e.shiftKey ? 1 : nudge;
+      setLeftT((tr) => clampTransform({ ...tr, dx: tr.dx + m[0] * stepPx, dy: tr.dy + m[1] * stepPx }));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [current, nudge]);
+
   return (
     <div>
       <h1>{t('calibration.title')}</h1>
@@ -524,6 +546,7 @@ export function CalibrationWizard() {
           ) : null}
           <h3 style={{ marginTop: 16 }}>{t('calibration.offset.fineTitle')}</h3>
           <p>{t('calibration.offset.fineIntro')}</p>
+          <p className="hint">{t('calibration.offset.keyboardHint')}</p>
           <CalibCanvas options={baseOptions} draw={drawOffset} testId="offset-canvas" />
           <div className="row">
             <Segmented

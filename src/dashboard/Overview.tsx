@@ -117,7 +117,7 @@ export function Overview() {
                 </tbody>
               </table>
               {!m.implemented ? <p className="hint">{t('gate.not-implemented')}</p> : null}
-              {m.implemented && !gate.unlocked ? (
+              {!gate.unlocked ? (
                 <p className="hint">
                   {gate.reasons.map((r) => t(`gate.${r}`)).join(' · ')}
                   {gate.reasons.includes('needs-stable-sessions') ||

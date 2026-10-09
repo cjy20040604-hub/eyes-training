@@ -42,7 +42,12 @@
       "often": "Often",
       "always": "Always"
     },
-    "severity": { "none": "None", "mild": "Mild", "moderate": "Moderate", "severe": "Severe" },
+    "severity": {
+      "none": "None",
+      "mild": "Mild",
+      "moderate": "Moderate",
+      "severe": "Severe"
+    },
     "intro": {
       "pre": "Before you start: how are your eyes right now? Answer honestly; this decides whether to train and how hard.",
       "post": "Session finished. How do your eyes feel now, compared with before?",
@@ -141,7 +146,27 @@
     "progressionLockTitle": "Progression paused — please consult an orthoptist",
     "progressionLockBody": "Double vision was reported in two consecutive sessions. Automatic progression is disabled until you clear it in Settings after discussing with your clinician.",
     "afterTitle": "After the session",
-    "afterBody": "Take off the glasses and rest your eyes for a minute. If any double vision, blur or colour after-image persists, rest before driving or hazardous activity."
+    "afterBody": "Take off the glasses and rest your eyes for a minute. If any double vision, blur or colour after-image persists, rest before driving or hazardous activity.",
+    "holdProgress": "Hold progress",
+    "sessionProgress": "Session progress",
+    "pausedTitle": "Paused",
+    "pausedBody": "The session paused because the window was hidden. The timer is stopped. Resume when you are ready, or use STOP.",
+    "change": {
+      "game-up": {
+        "title": "Well done — a little harder next time",
+        "body": "Game difficulty for the next session: {{game}}/5. Visual difficulty is unchanged."
+      },
+      "visual-up": {
+        "title": "Well done — one small visual step next time",
+        "body": "Visual difficulty for the next session: {{value}}. Game difficulty is unchanged."
+      },
+      "game-down": {
+        "title": "A little easier next time",
+        "body": "This session was hard, so the game difficulty eases to {{game}}/5. That is normal."
+      }
+    },
+    "recalibrateTitle": "What you see may differ from your calibration",
+    "recalibrateBody": "You pressed Space several times when the ball looked inside the ring, but by your calibrated prism offset it was still far away. With your glasses on, redo step 6 (prism offset) of the calibration wizard, and check the prism direction you entered."
   },
   "gate": {
     "training-locked": "Training is locked after a red-flag report. Open the Red flag page.",
@@ -152,7 +177,8 @@
     "recent-stop": "A STOP event occurred in one of the last 3 sessions.",
     "clinician-agreement": "Requires the clinician agreement toggle in Settings.",
     "cap": "The daily time cap is reached, or you reported strong symptoms just now. Rest today.",
-    "not-implemented": "This module ships in Phase 2."
+    "not-implemented": "This module ships in Phase 2.",
+    "symptoms": "You reported strong symptoms in the pre-session check. Please rest today; do not train with double vision, headache or nausea."
   },
   "modules": {
     "l1": {
@@ -160,14 +186,26 @@
       "tagline": "Simultaneous perception: a bird for the left eye, a cage for the right.",
       "description": "Your left eye sees a bird and your right eye sees a cage; both see a frame. Steer the bird (arrow keys, WASD, touch or gamepad) into the cage and keep it there while the cage drifts. Now and then a small chick appears under the bird — visible to the LEFT eye only. Press Space / Enter / tap when you notice it. Intensity lowers the RIGHT eye's contrast so the left eye is easier to notice; game difficulty changes cage size and drift.",
       "gameDifficulty": "Game difficulty: cage size and drift speed (1 = large, slow).",
-      "prompt": { "steer": "Steer the bird into the cage", "hold": "Good — keep it there" }
+      "prompt": {
+        "steer": "Steer the bird into the cage",
+        "hold": "Good — keep it there",
+        "chick": "A chick appeared — press Space!"
+      },
+      "controls": "Controls: hold the arrow keys or WASD to fly the bird (hold Shift for fine moves), or click / tap where it should go. Press Space when you see the small chick under the bird."
     },
     "l2": {
       "name": "Line Them Up",
       "tagline": "Flat fusion: a ball for the left eye, a ring for the right.",
       "description": "Your left eye sees a ball and your right eye sees a ring; both see a frame. Put the ball inside the ring and hold. The ring then glides somewhere else. Intensity removes a small percentage of the calibrated prism compensation (only with clinician agreement); game difficulty changes ring size, glide speed and hold time.",
       "gameDifficulty": "Game difficulty: ring size, glide speed, hold time.",
-      "prompt": { "align": "Move the ball into the ring", "hold": "Hold it…" }
+      "prompt": {
+        "align": "Move the ball into the ring",
+        "hold": "Hold it… the arc fills up",
+        "tooFar": "Not close enough yet — move the ball nearer to the ring",
+        "next": "Nice! The ring is moving",
+        "tooFarRecalibrate": "Still far from the ring. If it looks inside to you, your prism offset may need recalibrating"
+      },
+      "controls": "Controls: hold the arrow keys or WASD to move the ball (hold Shift for fine moves), or click / tap the ring. If the ball already LOOKS inside the ring, press Space."
     },
     "l3": {
       "name": "Don't Lose the Left",
@@ -207,9 +245,21 @@
     "score": "Score",
     "birdToCageMeanPx": "Final bird–cage distance (px)",
     "alignments": "Alignments completed",
-    "meanTimeToAlignMs": "Mean time to align (ms)"
+    "meanTimeToAlignMs": "Mean time to align (ms)",
+    "autoAlignments": "Alignments held",
+    "confirmedAlignments": "Alignments confirmed by you (Space)",
+    "farConfirms": "Space pressed too far from the ring",
+    "meanResidualDxPx": "Mean perceived offset, horizontal (px)",
+    "meanResidualDyPx": "Mean perceived offset, vertical (px)",
+    "meanResidualDelta": "Mean perceived offset (Δ)",
+    "probeFalseAlarms": "Space pressed with no chick",
+    "birdToCageFinalPx": "Final bird–cage distance (px)"
   },
-  "intensity": { "low": "Low", "medium": "Medium", "high": "High" },
+  "intensity": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
   "status": {
     "in-progress": "In progress",
     "completed": "Completed",
@@ -387,7 +437,12 @@
       "amountHint": "1Δ deflects 1 cm at 1 m. 7Δ ≈ 4.0°.",
       "implausible": "Enter a value between 0 and 40Δ.",
       "base": "Base direction",
-      "bases": { "in": "Base-in", "out": "Base-out", "up": "Base-up", "down": "Base-down" },
+      "bases": {
+        "in": "Base-in",
+        "out": "Base-out",
+        "up": "Base-up",
+        "down": "Base-down"
+      },
       "range": "Measured at",
       "near": "Near",
       "distance": "Distance",
@@ -410,7 +465,8 @@
       "readout": "Left-eye offset: dx {{dx}} px, dy {{dy}} px (≈ {{delta}}Δ at your distance).",
       "torsionTitle": "Optional: cyclotorsion compensation (advanced)",
       "torsionCaution": "Superior-oblique palsy often produces a few degrees of excyclotorsion. Rotating one eye's image can help fusion but can also cause torsional diplopia. Default is 0°. Adjust only in 0.5° steps and stop at any discomfort. This rotation is applied only if enabled in Settings.",
-      "torsionEnableHint": "Rotation is stored in the profile but ignored until 'cyclotorsion' is enabled in Settings."
+      "torsionEnableHint": "Rotation is stored in the profile but ignored until 'cyclotorsion' is enabled in Settings.",
+      "keyboardHint": "Tip: the arrow keys also nudge the left-eye image on this step."
     },
     "contrast": {
       "intro": "Two bars: the left one for your LEFT eye, the right one for your RIGHT eye. Say which looks stronger / brighter. The right eye's contrast steps down until they look equal (Mansouri / Thompson / Hess balance point). Left stays at 100%.",

@@ -1,6 +1,6 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HashRouter, NavLink, Route, Routes } from 'react-router-dom';
+import { HashRouter, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { CalibrationWizard } from './calibration/Wizard';
 import { History } from './dashboard/History';
@@ -14,6 +14,15 @@ import { DisclaimerScreen } from './safety/DisclaimerScreen';
 import { recoverInProgressSessions } from './safety/session';
 import { TrainingShell } from './safety/TrainingShell';
 import { Banner, Button, Footer } from './ui';
+
+/**
+ * A fresh training screen per module: moving from /train/l1 to /train/l2 (e.g. with the
+ * browser's back/forward buttons) must not carry over the previous module's session state.
+ */
+function TrainingRoute() {
+  const { moduleId } = useParams();
+  return <TrainingShell key={moduleId ?? 'none'} />;
+}
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   override state = { error: null as Error | null };
@@ -126,7 +135,7 @@ export default function App() {
               <Route path="/" element={<Overview />} />
               <Route path="/calibration" element={<CalibrationWizard />} />
               <Route path="/module/:moduleId" element={<ModuleView />} />
-              <Route path="/train/:moduleId" element={<TrainingShell />} />
+              <Route path="/train/:moduleId" element={<TrainingRoute />} />
               <Route path="/history" element={<History />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/red-flag" element={<RedFlagPage />} />

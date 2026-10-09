@@ -94,6 +94,81 @@ export function glide(from: Point, to: Point, speedPxPerSec: number, dtMs: numbe
   return { x: from.x + ((to.x - from.x) / d) * step, y: from.y + ((to.y - from.y) / d) * step };
 }
 
+/**
+ * Moves a player-controlled object.
+ *  - Held direction (keyboard, gamepad) moves it at a constant speed while held, and stops
+ *    the moment the direction is released, so it can be placed precisely.
+ *  - A pointer/tap target persists after the pointer is released: the object glides to
+ *    the tapped point and stops there. A single click or tap is enough.
+ *  - Any held direction cancels a pending target.
+ */
+export class Steerer {
+  private dir: Point = { x: 0, y: 0 };
+  private target: Point | null = null;
+
+  constructor(
+    public pos: Point,
+    private readonly speedPxPerSec: number,
+    private readonly margin: number,
+  ) {}
+
+  get hasTarget(): boolean {
+    return this.target !== null;
+  }
+
+  get isMoving(): boolean {
+    return this.target !== null || this.dir.x !== 0 || this.dir.y !== 0;
+  }
+
+  setDirection(dx: number, dy: number): void {
+    const x = Math.max(-1, Math.min(1, Number.isFinite(dx) ? dx : 0));
+    const y = Math.max(-1, Math.min(1, Number.isFinite(dy) ? dy : 0));
+    this.dir = { x, y };
+    if (x !== 0 || y !== 0) this.target = null;
+  }
+
+  setTarget(ctx: Pick<ModuleRuntimeContext, 'width' | 'height'>, p: Point): void {
+    this.target = clampToArea(ctx, p, this.margin);
+  }
+
+  clear(): void {
+    this.dir = { x: 0, y: 0 };
+    this.target = null;
+  }
+
+  update(ctx: Pick<ModuleRuntimeContext, 'width' | 'height'>, dtMs: number): void {
+    const { x, y } = this.dir;
+    if (x !== 0 || y !== 0) {
+      // Diagonals are not faster than straight moves.
+      const mag = Math.max(1, Math.hypot(x, y));
+      const step = (this.speedPxPerSec * dtMs) / 1000;
+      this.pos = { x: this.pos.x + (x / mag) * step, y: this.pos.y + (y / mag) * step };
+    } else if (this.target) {
+      this.pos = glide(this.pos, this.target, this.speedPxPerSec * 1.6, dtMs);
+      if (distance(this.pos, this.target) < 0.01) this.target = null;
+    }
+    this.pos = clampToArea(ctx, this.pos, this.margin);
+  }
+}
+
+/** Draw a progress arc (0..1) around a point, starting at 12 o'clock. Changes gradually. */
+export function drawProgressArc(
+  c: CanvasRenderingContext2D,
+  p: Point,
+  r: number,
+  progress: number,
+  lineWidth = 5,
+  gray = 1,
+): void {
+  const f = Math.max(0, Math.min(1, progress));
+  if (f <= 0) return;
+  c.strokeStyle = grayCss(gray);
+  c.lineWidth = lineWidth;
+  c.beginPath();
+  c.arc(p.x, p.y, r, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2);
+  c.stroke();
+}
+
 /** Deterministic PRNG for tests (mulberry32). */
 export function seededRandom(seed: number): () => number {
   let a = seed >>> 0;

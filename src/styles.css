@@ -394,6 +394,15 @@ td {
   flex: 1;
 }
 
+/* Control hints: white on black, outside the stimulus, readable through both filters. */
+.training-help {
+  background: #000;
+  color: #fff;
+  font-size: 0.9rem;
+  padding: 4px 12px;
+  border-bottom: 1px solid #555;
+}
+
 .training-canvas-wrap {
   flex: 1;
   position: relative;

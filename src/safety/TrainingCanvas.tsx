@@ -33,6 +33,8 @@ export interface TrainingCanvasProps {
   onEvent: (type: SessionEvent['type'], data?: SessionEvent['data']) => void;
   /** Receives a getter for the module's metrics. */
   metricsRef: React.MutableRefObject<(() => Record<string, number>) | null>;
+  /** Set to performance.now() on every drawn frame, so the session timer can tell a frozen stimulus. */
+  frameClockRef?: React.MutableRefObject<number>;
 }
 
 export function baseRenderOptions(
@@ -128,6 +130,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       }
       module.update(dt, now);
       module.draw(layers);
+      if (propsRef.current.frameClockRef) propsRef.current.frameClockRef.current = performance.now();
       renderer.composite(
         { left: layers.left.canvas, right: layers.right.canvas },
         module.renderOverrides(base),
@@ -156,42 +159,69 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       }
     });
 
-    const keys = new Set<string>();
+    // ---- Keyboard: held keys -> direction (sent only when it changes) ----
+    const held = new Set<string>();
+    let lastDir = { dx: 0, dy: 0 };
+    const sendDirection = (dx: number, dy: number) => {
+      if (dx === lastDir.dx && dy === lastDir.dy) return;
+      lastDir = { dx, dy };
+      module.input({ type: 'direction', dx, dy });
+    };
+    const directionFromKeys = (slow: boolean) => {
+      const has = (...k: string[]) => k.some((x) => held.has(x));
+      const scale = slow ? 0.35 : 1;
+      const dx = ((has('arrowright', 'd') ? 1 : 0) - (has('arrowleft', 'a') ? 1 : 0)) * scale;
+      const dy = ((has('arrowdown', 's') ? 1 : 0) - (has('arrowup', 'w') ? 1 : 0)) * scale;
+      sendDirection(dx, dy);
+    };
+    const MOVE_KEYS = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ' ' || e.key === 'Enter') {
+      if (!runningRef.current) return;
+      const key = e.key.toLowerCase();
+      if (key === ' ' || key === 'enter') {
         e.preventDefault();
-        module.input({ type: 'action' });
+        if (!e.repeat) module.input({ type: 'action' });
         return;
       }
-      keys.add(e.key);
-      const dx =
-        (keys.has('ArrowRight') || keys.has('d') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('a') ? 1 : 0);
-      const dy =
-        (keys.has('ArrowDown') || keys.has('s') ? 1 : 0) - (keys.has('ArrowUp') || keys.has('w') ? 1 : 0);
-      if (dx || dy) {
+      if (MOVE_KEYS.has(key)) {
         e.preventDefault();
-        module.input({ type: 'move', dx, dy });
+        held.add(key);
       }
+      directionFromKeys(e.shiftKey);
     };
-    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key);
-    const pointer = (e: PointerEvent, down: boolean) => {
+    const onKeyUp = (e: KeyboardEvent) => {
+      held.delete(e.key.toLowerCase());
+      directionFromKeys(e.shiftKey);
+    };
+    const releaseAll = () => {
+      held.clear();
+      sendDirection(0, 0);
+    };
+
+    // ---- Pointer: a tap/click sets a target the object glides to; dragging updates it ----
+    const pointerAt = (e: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
-      module.input({ type: 'pointer', x: e.clientX - rect.left, y: e.clientY - rect.top, down });
+      module.input({ type: 'pointer', x: e.clientX - rect.left, y: e.clientY - rect.top, down: true });
     };
     const onPointerDown = (e: PointerEvent) => {
-      canvas.setPointerCapture(e.pointerId);
-      pointer(e, true);
+      if (!runningRef.current) return;
+      e.preventDefault();
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {
+        // Pointer capture is optional.
+      }
+      pointerAt(e);
     };
     const onPointerMove = (e: PointerEvent) => {
-      if (e.buttons > 0) pointer(e, true);
+      if (runningRef.current && e.buttons > 0) pointerAt(e);
     };
-    const onPointerUp = (e: PointerEvent) => pointer(e, false);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', releaseAll);
+    document.addEventListener('visibilitychange', releaseAll);
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
-    canvas.addEventListener('pointerup', onPointerUp);
-    canvas.addEventListener('pointercancel', onPointerUp);
 
     const ro = new ResizeObserver(() => {
       width = Math.max(1, wrap.clientWidth);
@@ -204,16 +234,27 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
     });
     ro.observe(wrap);
 
-    // Gamepad polling (optional input path).
+    // Gamepad polling (optional input path): left stick = direction, button A = action.
     let gpTimer: number | null = null;
+    let gpWasPressed = false;
+    let gpActive = false;
     if ('getGamepads' in navigator) {
       gpTimer = window.setInterval(() => {
         const gp = navigator.getGamepads?.()[0];
         if (!gp || !runningRef.current) return;
-        const ax = gp.axes[0] ?? 0;
-        const ay = gp.axes[1] ?? 0;
-        if (Math.abs(ax) > 0.2 || Math.abs(ay) > 0.2) module.input({ type: 'move', dx: ax, dy: ay });
-        if (gp.buttons[0]?.pressed) module.input({ type: 'action' });
+        const dead = (v: number) => (Math.abs(v) > 0.2 ? v : 0);
+        const ax = dead(gp.axes[0] ?? 0);
+        const ay = dead(gp.axes[1] ?? 0);
+        if (ax || ay) {
+          gpActive = true;
+          sendDirection(Math.round(ax * 10) / 10, Math.round(ay * 10) / 10);
+        } else if (gpActive) {
+          gpActive = false;
+          sendDirection(0, 0);
+        }
+        const pressed = !!gp.buttons[0]?.pressed;
+        if (pressed && !gpWasPressed) module.input({ type: 'action' });
+        gpWasPressed = pressed;
       }, 50);
     }
 
@@ -224,10 +265,10 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       if (gpTimer !== null) clearInterval(gpTimer);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', releaseAll);
+      document.removeEventListener('visibilitychange', releaseAll);
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
-      canvas.removeEventListener('pointerup', onPointerUp);
-      canvas.removeEventListener('pointercancel', onPointerUp);
       module.stop();
       renderer.dispose();
       p.metricsRef.current = null;

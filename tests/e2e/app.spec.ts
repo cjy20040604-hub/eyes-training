@@ -172,3 +172,40 @@ test('renderer can be swapped without changing modules', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('overlay-stop')).toBeVisible();
 });
+
+test('switching training pages mid-session starts fresh and closes the old session', async ({ page }) => {
+  await acceptDisclaimer(page);
+  await importBundle(page, bundle());
+  await page.goto('/#/');
+  await page.getByTestId('start-l2').click();
+  await page.getByTestId('symptom-submit').click();
+  await expect(page.getByTestId('training-canvas')).toBeVisible();
+  // Jump straight to L1 (as the browser's back/forward buttons can do).
+  await page.goto('/#/train/l1');
+  await expect(page.getByTestId('symptom-check-pre')).toBeVisible();
+  await page.goto('/#/history');
+  await expect(page.locator('tbody tr', { hasText: 'Aborted' })).toHaveCount(1);
+  await expect(page.locator('tbody tr', { hasText: 'In progress' })).toHaveCount(0);
+});
+
+test('pausing when the window is hidden stops the session timer until resumed', async ({ page }) => {
+  await acceptDisclaimer(page);
+  await importBundle(page, bundle());
+  await page.goto('/#/');
+  await page.getByTestId('start-l1').click();
+  await page.getByTestId('symptom-submit').click();
+  await expect(page.getByTestId('training-canvas')).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.getByTestId('overlay-paused')).toBeVisible();
+  const before = await page.getByTestId('hud-timer').textContent();
+  await page.waitForTimeout(1500);
+  expect(await page.getByTestId('hud-timer').textContent()).toBe(before);
+  await page.getByTestId('resume-button').click();
+  await expect(page.getByTestId('overlay-paused')).toHaveCount(0);
+  await expect(page.getByTestId('hud-timer')).not.toHaveText(before ?? '', { timeout: 5000 });
+});

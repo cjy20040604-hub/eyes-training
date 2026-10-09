@@ -12,12 +12,13 @@ import {
 import { useSettings } from '../data/settingsStore';
 import { dayKey, nowIso } from '../data/util';
 import type { FlashReport } from '../engine/flashDetector';
-import { initialProgress, moveTowardTier } from '../modules/adaptive';
+import { autoAdvance, initialProgress, moveTowardTier, type ProgressChange } from '../modules/adaptive';
 import { getModule } from '../modules/registry';
 import type { HudState } from '../modules/types';
 import { Banner, Button, Card, Progress } from '../ui';
 import { allowedSessionMinutes, isBreakDue, minutesUsedOnDay } from './caps';
 import { ErgonomicsCard } from './ErgonomicsCard';
+import { discomfortReported } from './symptomRules';
 import { evaluateGate, type GateReason } from './gating';
 import {
   applyPostCheckRules,
@@ -47,7 +48,9 @@ export function TrainingShell() {
   const all = useAllData();
 
   const [phase, setPhase] = useState<Phase>('loading');
-  const [blockReasons, setBlockReasons] = useState<Array<GateReason | 'cap' | 'not-implemented'>>([]);
+  const [blockReasons, setBlockReasons] = useState<
+    Array<GateReason | 'cap' | 'not-implemented' | 'symptoms'>
+  >([]);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [hud, setHud] = useState<HudState>({ promptKey: '', score: 0, roundProgress: null });
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -60,9 +63,14 @@ export function TrainingShell() {
     steppedBack: boolean;
     progressionLocked: boolean;
     minutes: number;
+    change: ProgressChange;
+    next: ModuleProgress | null;
   } | null>(null);
   const [flashReport, setFlashReport] = useState<FlashReport | null>(null);
   const metricsRef = useRef<(() => Record<string, number>) | null>(null);
+  const stopMetricsRef = useRef<Record<string, number> | null>(null);
+  const completingRef = useRef(false);
+  const frameClockRef = useRef(0);
   const sessionRef = useRef<SessionRecord | null>(null);
   sessionRef.current = session;
 
@@ -82,7 +90,7 @@ export function TrainingShell() {
   // ---- Gate evaluation ----
   useEffect(() => {
     if (calLoading || all.loading || !all.data) return;
-    const reasons: Array<GateReason | 'cap' | 'not-implemented'> = [];
+    const reasons: Array<GateReason | 'cap' | 'not-implemented' | 'symptoms'> = [];
     if (!def.implemented) reasons.push('not-implemented');
     const gate = evaluateGate(id, {
       settings,
@@ -120,11 +128,14 @@ export function TrainingShell() {
       return;
     }
     if (pre.check.diplopia >= 3 || pre.check.headache >= 2 || pre.check.nausea >= 2) {
-      setBlockReasons([]);
+      setBlockReasons(['symptoms']);
       setPhase('blocked');
-      setBlockReasons(['cap']);
       return;
     }
+    completingRef.current = false;
+    stopMetricsRef.current = null;
+    setBreaksTaken(0);
+    setOverlay(null);
     const existing = settings.moduleProgress[id] ?? initialProgress(def, calibration, plan.intensityTier);
     const p = moveTowardTier(def, existing, plan.intensityTier, { settings, calibration });
     settings.setModuleProgress(id, p);
@@ -162,6 +173,8 @@ export function TrainingShell() {
       const now = performance.now();
       const dt = now - last;
       last = now;
+      // Only count training time while the stimulus is actually being drawn.
+      if (now - frameClockRef.current > 750) return;
       heartbeat += dt;
       setElapsedMs((e) => e + dt);
       if (heartbeat >= 5000) {
@@ -179,7 +192,10 @@ export function TrainingShell() {
   useEffect(() => {
     if (phase !== 'running' || overlay !== null) return;
     if (elapsedMs >= sessionMs) {
-      void completeSession('completed');
+      if (!completingRef.current) {
+        completingRef.current = true;
+        void completeSession('completed');
+      }
       return;
     }
     if (isBreakDue(settings.caps, elapsedMs, sessionMs, breaksTaken)) {
@@ -190,22 +206,53 @@ export function TrainingShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsedMs, phase, overlay]);
 
+  // Micro-break countdown. Side effects live here, never inside a state updater.
   useEffect(() => {
     if (overlay !== 'break') return;
+    const endAt = performance.now() + settings.caps.microBreakSeconds * 1000;
     const timer = window.setInterval(() => {
-      setBreakLeftMs((ms) => {
-        if (ms <= 250) {
-          clearInterval(timer);
-          setBreaksTaken((b) => b + 1);
-          setOverlay(null);
-          emitEvent('break-end');
-          return 0;
-        }
-        return ms - 250;
-      });
+      const left = endAt - performance.now();
+      if (left <= 0) {
+        window.clearInterval(timer);
+        setBreakLeftMs(0);
+        setBreaksTaken((b) => b + 1);
+        setOverlay(null);
+        emitEvent('break-end');
+      } else {
+        setBreakLeftMs(left);
+      }
     }, 250);
-    return () => clearInterval(timer);
-  }, [overlay, emitEvent]);
+    return () => window.clearInterval(timer);
+  }, [overlay, emitEvent, settings.caps.microBreakSeconds]);
+
+  // Leaving the page mid-session (back button, nav link) closes the session as aborted,
+  // instead of leaving it "in progress" until the next app start.
+  useEffect(
+    () => () => {
+      const s = sessionRef.current;
+      if (s && s.status === 'in-progress') {
+        const metrics = stopMetricsRef.current ?? metricsRef.current?.() ?? {};
+        void saveSession(finalizeSession(s, 'aborted', metrics));
+      }
+    },
+    [],
+  );
+
+  // Pause the session (timer and stimulus) when the window is hidden; resume on request.
+  useEffect(() => {
+    if (phase !== 'running') return;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        setOverlay((o) => (o === null ? 'paused' : o));
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [phase]);
+
+  useEffect(() => {
+    if (overlay === 'paused' && phase === 'running') emitEvent('pause');
+  }, [overlay, phase, emitEvent]);
 
   const onFlash = useCallback(
     (report: FlashReport) => {
@@ -228,7 +275,9 @@ export function TrainingShell() {
   // ---- STOP ----
   const onStop = useCallback(() => {
     if (phase !== 'running') return;
-    setOverlay('paused');
+    // Capture metrics now: the stimulus unmounts as soon as the phase changes.
+    stopMetricsRef.current = metricsRef.current?.() ?? null;
+    setOverlay(null);
     emitEvent('stop');
     void recordSafetyEvent('stop', 'user pressed STOP', sessionRef.current?.id ?? null);
     setPhase('stopcheck');
@@ -261,7 +310,7 @@ export function TrainingShell() {
     await saveCheck(check);
     let s = sessionRef.current;
     if (s) {
-      if (fromStop) s = finalizeSession(s, 'stopped', metricsRef.current?.() ?? {});
+      if (fromStop) s = finalizeSession(s, 'stopped', stopMetricsRef.current ?? {});
       s = { ...s, postCheckId: check.id };
       sessionRef.current = s;
       setSession(s);
@@ -279,7 +328,31 @@ export function TrainingShell() {
       settings,
       postChecksNewestFirst: posts,
     });
-    settings.setModuleProgress(id, result.progress);
+    let nextProgress = result.progress;
+    let change: ProgressChange = null;
+    const progressionLockedNow = result.progressionLocked || settings.progressionLock.locked;
+    if (
+      !fromStop &&
+      s?.status === 'completed' &&
+      !discomfortReported(check) &&
+      !result.trainingLocked &&
+      !progressionLockedNow
+    ) {
+      const perf = def.assess(s.metrics, s.actualMinutes);
+      const adv = autoAdvance(def, result.progress, perf, plan.intensityTier, {
+        settings,
+        calibration,
+      });
+      nextProgress = adv.progress;
+      change = adv.change;
+      if (s) {
+        s = { ...s, notes: `performance=${perf}${change ? `; next=${change}` : ''}` };
+        sessionRef.current = s;
+        setSession(s);
+        await saveSession(s);
+      }
+    }
+    settings.setModuleProgress(id, nextProgress);
     if (result.progressionLocked && !settings.progressionLock.locked) {
       settings.setProgressionLock(true, 'diplopia reported in 2 consecutive sessions');
       await recordSafetyEvent('diplopia-lock', 'diplopia in 2+ consecutive sessions', s?.id ?? null);
@@ -288,6 +361,8 @@ export function TrainingShell() {
       steppedBack: result.steppedBack,
       progressionLocked: result.progressionLocked,
       minutes: s?.actualMinutes ?? 0,
+      change,
+      next: nextProgress,
     });
     if (result.trainingLocked) {
       await lockForRedFlag('post-check', s?.id ?? null);
@@ -379,12 +454,22 @@ export function TrainingShell() {
             {Math.floor(elapsedMs / 60000)}:{String(Math.floor((elapsedMs / 1000) % 60)).padStart(2, '0')} /{' '}
             {allowedMinutes}:00
           </span>
-          <span>{t('training.score', { score: hud.score })}</span>
+          <span data-testid="hud-score">{t('training.score', { score: hud.score })}</span>
           <span className="spacer" />
-          <span>{hud.promptKey ? t(hud.promptKey) : ''}</span>
-          <div style={{ width: 120 }}>
+          <span data-testid="hud-prompt" aria-live="polite">
+            {hud.promptKey ? t(hud.promptKey) : ''}
+          </span>
+          {hud.roundProgress !== null ? (
+            <div style={{ width: 90 }} title={t('training.holdProgress')}>
+              <Progress value={hud.roundProgress} />
+            </div>
+          ) : null}
+          <div style={{ width: 120 }} title={t('training.sessionProgress')}>
             <Progress value={pct} />
           </div>
+        </div>
+        <div className="training-help" data-testid="training-help">
+          {t(`modules.${id}.controls`)}
         </div>
         {phase === 'running' && calibration && progress ? (
           <TrainingCanvas
@@ -400,6 +485,7 @@ export function TrainingShell() {
             onFlash={onFlash}
             onEvent={emitEvent}
             metricsRef={metricsRef}
+            frameClockRef={frameClockRef}
           />
         ) : null}
         {overlay === 'break' ? (
@@ -408,6 +494,26 @@ export function TrainingShell() {
               <h2>{t('training.breakTitle')}</h2>
               <p>{t('training.breakBody')}</p>
               <p style={{ fontSize: '2rem', fontWeight: 700 }}>{Math.ceil(breakLeftMs / 1000)}</p>
+            </div>
+          </div>
+        ) : null}
+        {overlay === 'paused' && phase === 'running' ? (
+          <div className="training-overlay" role="dialog" data-testid="overlay-paused">
+            <div className="panel">
+              <h2>{t('training.pausedTitle')}</h2>
+              <p>{t('training.pausedBody')}</p>
+              <div className="row" style={{ justifyContent: 'center' }}>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setOverlay(null);
+                    emitEvent('resume');
+                  }}
+                  data-testid="resume-button"
+                >
+                  {t('training.resume')}
+                </Button>
+              </div>
             </div>
           </div>
         ) : null}
@@ -472,6 +578,26 @@ export function TrainingShell() {
         <Banner tone="danger" title={t('training.progressionLockTitle')}>
           {t('training.progressionLockBody')}
         </Banner>
+      ) : null}
+      {(metrics['farConfirms'] ?? 0) >= 3 ? (
+        <div data-testid="summary-recalibrate">
+          <Banner tone="warn" title={t('training.recalibrateTitle')}>
+            {t('training.recalibrateBody')}
+          </Banner>
+        </div>
+      ) : null}
+      {outcome?.change && outcome.next ? (
+        <div data-testid="summary-change">
+          <Banner
+            tone={outcome.change === 'game-down' ? 'warn' : 'success'}
+            title={t(`training.change.${outcome.change}.title`)}
+          >
+            {t(`training.change.${outcome.change}.body`, {
+              game: outcome.next.gameDifficulty,
+              value: def.intensity.format(outcome.next.intensityValue),
+            })}
+          </Banner>
+        </div>
       ) : null}
       <Banner tone="info" title={t('training.afterTitle')}>
         {t('training.afterBody')}

@@ -21,6 +21,7 @@ function placeholder(
     create: () => {
       throw new Error(`Module ${id} is not implemented yet`);
     },
+    assess: () => 'ok',
   };
 }
 

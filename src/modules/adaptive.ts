@@ -31,11 +31,15 @@ export function tierForValue(
   calibration: CalibrationProfile,
 ): IntensityTier {
   const dir = def.intensity.harderDirection;
+  const low = def.intensity.valueForTier('low', calibration);
   const med = def.intensity.valueForTier('medium', calibration);
   const high = def.intensity.valueForTier('high', calibration);
+  const same = (a: number, b: number) => Math.abs(a - b) < 1e-9;
   const atLeast = (v: number, t: number) => (dir === 1 ? v >= t - 1e-9 : v <= t + 1e-9);
-  if (atLeast(value, high)) return 'high';
-  if (atLeast(value, med)) return 'medium';
+  // Tiers that share a value (e.g. a 100% balance point makes all three equal) collapse
+  // into the lowest one, so a value is never labelled harder than it really is.
+  if (!same(high, med) && atLeast(value, high)) return 'high';
+  if (!same(med, low) && atLeast(value, med)) return 'medium';
   return 'low';
 }
 
@@ -122,24 +126,72 @@ export function stepBackGame(p: ModuleProgress, ctx: AdaptiveContext): ModulePro
   };
 }
 
-/** Set the tier directly (from the daily plan) but never jump more than one step per session. */
+const TIER_RANK: Record<IntensityTier, number> = { low: 0, medium: 1, high: 2 };
+
+/**
+ * Apply the daily plan's target tier at session start. The planned tier acts as a band:
+ *  - progress already inside the planned tier is left exactly as it is (no change, no
+ *    timestamp), so automatic progression within the band is kept from day to day;
+ *  - progress above the planned tier drops to that tier at once (easier is always allowed);
+ *  - progress below the planned tier moves up by at most one small step per day.
+ */
 export function moveTowardTier(
   def: ModuleDefinition,
   p: ModuleProgress,
   targetTier: IntensityTier,
   ctx: AdaptiveContext,
 ): ModuleProgress {
-  const target = def.intensity.valueForTier(targetTier, ctx.calibration);
-  const dir = def.intensity.harderDirection;
-  const harder = dir === 1 ? target > p.intensityValue : target < p.intensityValue;
-  if (!harder) {
-    // Easier is always allowed instantly.
+  const currentTier = tierForValue(def, p.intensityValue, ctx.calibration);
+  if (TIER_RANK[currentTier] === TIER_RANK[targetTier]) {
+    return currentTier === p.intensityTier ? p : { ...p, intensityTier: currentTier };
+  }
+  if (TIER_RANK[currentTier] > TIER_RANK[targetTier]) {
     return {
       ...p,
-      intensityValue: target,
+      intensityValue: def.intensity.valueForTier(targetTier, ctx.calibration),
       intensityTier: targetTier,
       lastVisualChangeAt: ctx.nowIso ?? new Date().toISOString(),
     };
   }
   return stepUpVisual(def, p, ctx);
+}
+
+export type ProgressChange = 'game-up' | 'visual-up' | 'game-down' | null;
+
+/**
+ * Gentle automatic progression after a COMPLETED session with a clean post-session check.
+ *  - poor performance: game difficulty eases one level (always allowed);
+ *  - good performance: one small step up, at most once per day, never both kinds together.
+ *    Game difficulty goes first up to level 3, then visual difficulty, as long as the
+ *    visual step stays inside the planned tier and clinician gating allows it;
+ *  - nothing goes up while progression is locked.
+ */
+export function autoAdvance(
+  def: ModuleDefinition,
+  p: ModuleProgress,
+  performance: 'good' | 'ok' | 'poor',
+  planTier: IntensityTier,
+  ctx: AdaptiveContext,
+): { progress: ModuleProgress; change: ProgressChange } {
+  if (performance === 'poor') {
+    if (p.gameDifficulty > 1) return { progress: stepBackGame(p, ctx), change: 'game-down' };
+    return { progress: p, change: null };
+  }
+  if (performance !== 'good') return { progress: p, change: null };
+
+  const visualStaysInPlan = (): boolean => {
+    const next = p.intensityValue + def.intensity.harderDirection * def.intensity.maxStepPerSession;
+    const { min, max } = def.intensity.bounds(ctx.calibration);
+    const clamped = Math.max(min, Math.min(max, next));
+    return TIER_RANK[tierForValue(def, clamped, ctx.calibration)] <= TIER_RANK[planTier];
+  };
+  const tryGame = () =>
+    canStepUpGame(p, ctx) ? { progress: stepUpGame(p, ctx), change: 'game-up' as const } : null;
+  const tryVisual = () =>
+    canStepUpVisual(def, p, ctx) && visualStaysInPlan()
+      ? { progress: stepUpVisual(def, p, ctx), change: 'visual-up' as const }
+      : null;
+
+  const result = p.gameDifficulty < 3 ? (tryGame() ?? tryVisual()) : (tryVisual() ?? tryGame());
+  return result ?? { progress: p, change: null };
 }

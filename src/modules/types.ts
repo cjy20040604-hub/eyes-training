@@ -26,10 +26,20 @@ export interface IntensityMap {
   format(value: number): string;
 }
 
+/**
+ * Inputs delivered to a module.
+ *  - direction: the currently HELD direction (keyboard / gamepad), each axis in -1..1.
+ *    {0, 0} means released. Sent whenever it changes, not on every key repeat.
+ *  - pointer: a tap/click/drag position in CSS px of the stimulus canvas.
+ *  - action: Space / Enter / tap button / gamepad A (one per press).
+ */
 export type ModuleInput =
-  | { type: 'move'; dx: number; dy: number }
+  | { type: 'direction'; dx: number; dy: number }
   | { type: 'action' }
   | { type: 'pointer'; x: number; y: number; down: boolean };
+
+/** How well a session went, used for gentle day-to-day progression. */
+export type Performance = 'good' | 'ok' | 'poor';
 
 export interface HudState {
   /** i18n key of the current prompt shown outside the stimulus area. */
@@ -76,4 +86,6 @@ export interface ModuleDefinition {
   /** Phase 1 modules are implemented; others are listed but not runnable yet. */
   implemented: boolean;
   create(ctx: ModuleRuntimeContext): ModuleInstance;
+  /** Rate a finished session from its metrics and actual minutes. */
+  assess(metrics: Record<string, number>, minutes: number): Performance;
 }
