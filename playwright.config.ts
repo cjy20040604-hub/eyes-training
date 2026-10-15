@@ -9,6 +9,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',
+    // No single click or read may wait for the whole (long) test timeout.
+    actionTimeout: 15_000,
   },
   // Tests run against an e2e-mode build (with test hooks, see TrainingCanvas.tsx) in its own
   // folder, so it can never be confused with the production build in dist/.

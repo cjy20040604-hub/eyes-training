@@ -76,6 +76,14 @@ async function waitForPoint(page: Page, name: string): Promise<{ x: number; y: n
   throw new Error(`no "${name}" on screen`);
 }
 
+/**
+ * The HUD prompt, read WITHOUT waiting: the session can end between two steps, and then
+ * the prompt is gone. (A waiting read would block until the test timeout.)
+ */
+async function promptText(page: Page): Promise<string> {
+  return page.evaluate(() => document.querySelector('[data-testid=hud-prompt]')?.textContent ?? '');
+}
+
 async function score(page: Page): Promise<number> {
   const text = (await page.getByTestId('hud-score').textContent()) ?? '';
   return Number(text.replace(/\D+/g, '')) || 0;
@@ -136,7 +144,7 @@ async function playL1(page: Page) {
       const cage = (await probe(page))?.['cage'];
       if (cage) await page.mouse.click(cage.x, cage.y);
     }
-    const prompt = (await page.getByTestId('hud-prompt').textContent()) ?? '';
+    const prompt = await promptText(page);
     if (prompt.includes('chick')) {
       await page.keyboard.press('Space');
       chicks++;
@@ -162,7 +170,7 @@ async function playL2(page: Page) {
 
   await playUntilEnd(page, async (t, active) => {
     if (!active && t % 1000 !== 0) return;
-    const prompt = (await page.getByTestId('hud-prompt').textContent()) ?? '';
+    const prompt = await promptText(page);
     // Leave the ball alone while the ring glides or while the hold arc is filling.
     if (prompt.includes('ring is moving') || prompt.includes('Hold it')) return;
     const target = (await probe(page))?.['ring'];
