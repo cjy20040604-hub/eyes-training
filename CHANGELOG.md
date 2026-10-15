@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. Versions follow SemVer; releases are git tags `vX.Y.Z`.
 
+## [0.2.0] — 2026-10-15 (Phase 2)
+
+### Added
+
+- L3 "Don't Lose the Left": anti-suppression catch game. Stars only the left eye sees, a basket only the right eye sees, clouds (right eye) to avoid from level 2.
+- L4 "Stretch": fusional vergence ramp with break / recovery recording, alternating base-out and base-in, different targets per eye (square / cross) with nonius ticks, horizontal only, 12Δ / 6Δ ceilings, clinician-gated.
+- L5 "Pop-Out": Julesz random-dot stereograms with no monocular cue, 4-direction answers, "cannot tell" option, 2-down/1-up log staircase down to one device pixel.
+- Dichoptic video: local video files (or CORS-enabled https links) in grey per eye, reduced strong-eye contrast, slowly drifting complementary masks, 85% brightness cap, flash checking, pause with breaks; YouTube / Bilibili only as plain viewing in a new tab.
+- Clinician report: setup and starting point, adherence, key measures (first vs latest), symptoms and safety events, trend charts, print / save as PDF, CSV downloads (sessions with measurements, symptom checks, safety events).
+- Progress charts on the History page (minutes, L1 contrast, L2 perceived offset, L3 catch rate, L4 break / recovery, L5 threshold, double vision), each with a data-table view; colours validated for colour-vision deficiency in light and dark mode.
+- Overview: "Ready to add" section for unlocked stages with one-click add; locked stages show what unlocks them.
+- Honest dose: input-driven modules pause after 60 s without input; a module setup step (used by the video module).
+
+### Changed
+
+- Module placeholders replaced by real modules; session events record vergence breaks and recoveries.
+
 ## [0.1.2] — 2026-10-09
 
 ### Changed

@@ -2,12 +2,15 @@ import { useTranslation } from 'react-i18next';
 import { downloadText, sessionsToCsv } from '../data/exportImport';
 import { useAllData } from '../data/hooks';
 import { FREQUENCY_LABELS } from '../data/schema';
+import { useSettings } from '../data/settingsStore';
 import { getModule } from '../modules/registry';
+import { TrendsSection } from './TrendsSection';
 import { Button, Card } from '../ui';
 
 export function History() {
   const { t } = useTranslation();
   const all = useAllData();
+  const dailyCap = useSettings((st) => st.caps.dailyCapMinutes);
   const sessions = [...(all.data?.sessions ?? [])].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const checks = all.data?.checks ?? [];
   const events = [...(all.data?.safetyEvents ?? [])].sort((a, b) => b.at.localeCompare(a.at));
@@ -16,6 +19,9 @@ export function History() {
   return (
     <div>
       <h1>{t('history.title')}</h1>
+      <Card title={t('trends.title')}>
+        <TrendsSection sessions={all.data?.sessions ?? []} checks={checks} dailyCap={dailyCap} />
+      </Card>
       <Card title={t('history.sessions')}>
         <div className="row no-print" style={{ marginBottom: 12 }}>
           <Button

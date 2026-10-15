@@ -267,6 +267,7 @@ export const l1Module: ModuleDefinition = {
   defaultMinutes: 3,
   intensity,
   implemented: true,
+  requiresInput: true,
   create: (ctx) => new L1Instance(ctx),
   assess: assessL1,
 };

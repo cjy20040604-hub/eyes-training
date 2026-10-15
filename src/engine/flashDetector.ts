@@ -54,6 +54,8 @@ export interface FlashReport {
   /** Fraction of frame area currently flashing at >= 1 flash/s. */
   flashingAreaFraction: number;
   timestampMs: number;
+  /** True when the frame could not be read (cross-origin video), so it cannot be checked. */
+  unverifiable?: boolean;
 }
 
 /** WCAG reference: 25% of a 10° field at 1024x768 / typical distance = 341 x 256 px. */

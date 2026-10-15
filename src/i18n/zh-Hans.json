@@ -13,7 +13,8 @@
     "calibration": "校准",
     "history": "历史",
     "settings": "设置",
-    "redFlag": "警示信号"
+    "redFlag": "警示信号",
+    "report": "医生报告"
   },
   "common": {
     "cancel": "取消",
@@ -168,7 +169,12 @@
       }
     },
     "recalibrateTitle": "你看到的位置可能和校准不一致",
-    "recalibrateBody": "你多次在小球看起来已在环内时按了空格，但按照校准的棱镜偏移，它离圆环仍然较远。请戴上眼镜，重新进行校准向导第 6 步（棱镜偏移），并检查录入的棱镜基底方向。"
+    "recalibrateBody": "你多次在小球看起来已在环内时按了空格，但按照校准的棱镜偏移，它离圆环仍然较远。请戴上眼镜，重新进行校准向导第 6 步（棱镜偏移），并检查录入的棱镜基底方向。",
+    "setupMissing": "请先在上方选择要观看的视频，再保存检查。",
+    "idleTitle": "还在吗？",
+    "idleBody": "一分钟没有操作，训练已暂停，计时也已停止。空闲时间不计入训练。准备好后点击继续。",
+    "unverifiableTitle": "无法检查这个视频是否闪烁",
+    "unverifiableBody": "托管该视频的网站不允许读取画面，应用无法监测闪光，播放已停止。请改用你设备上的视频文件。"
   },
   "gate": {
     "training-locked": "警示信号报告后训练已锁定。请打开“警示信号”页面。",
@@ -211,27 +217,76 @@
     },
     "l3": {
       "name": "别丢了左眼",
-      "tagline": "抗抑制接球（第二阶段）。",
-      "description": "只有左眼可见的目标需要被接住，右眼看到场地（MFBF 方式）。第二阶段提供。",
-      "gameDifficulty": "游戏难度：目标速度与大小。"
+      "tagline": "抗抑制：左眼看星星，右眼看篮子。",
+      "description": "只有左眼能看到落下的星星；你移动的篮子只有右眼能看到，所以接住星星需要两只眼同时工作。游戏难度 2 起，会落下只有右眼能看到的云朵，要躲开。强度降低右眼对比度；游戏难度改变下落速度、星星大小和篮子宽度。",
+      "gameDifficulty": "游戏难度：下落速度、星星大小、出现频率、篮子宽度；难度 2 起出现云朵。",
+      "controls": "操作：按住左右方向键（或 A / D）移动篮子，或点击 / 轻触想让它去的位置。",
+      "prompt": {
+        "catch": "接住星星",
+        "cloud": "那是云朵，要躲开云朵",
+        "streak": "连续接住 {{streak}} 个！"
+      }
     },
     "l4": {
       "name": "伸展",
-      "tagline": "微小基底向外 / 向内需求的融合性聚散（第二阶段，需临床医生同意）。",
-      "description": "微小的虚拟聚散需求，记录破裂 / 恢复点，垂直需求接近零，上限远低于成人正常幅度。第二阶段提供，需临床医生同意。",
-      "gameDifficulty": "游戏难度：目标复杂度。"
+      "tagline": "融合性聚散：画面分开时，保持十字在方框里。",
+      "description": "左眼看到方框，右眼看到十字。两眼画面融合时，十字就在方框里。随后两幅画面缓慢分开，交替进行基底向外（眼睛内聚）和基底向内（眼睛外散）。一看到两个、或十字离开方框，就按空格；画面随后会重新靠拢，当它重新变成一个时再按一次空格。这样就记录了破裂点和恢复点。外散最多 6Δ，内聚最多 12Δ，且始终没有垂直方向的要求。需要临床医生同意。",
+      "gameDifficulty": "游戏难度：分开速度和目标大小。",
+      "controls": "操作：变成两个时按一次空格（或点击 / 轻触），重新变成一个时再按一次。不要用力；每一轮以看到两个结束是正常的。",
+      "prompt": {
+        "rest": "休息，马上开始下一轮",
+        "easy": "放轻松：今天较早出现重影，轮次之间多休息一会儿",
+        "stretch": "{{dir}} {{delta}}Δ。看到两个时按空格",
+        "hold": "{{dir}} {{delta}}Δ。已到上限，正在回来",
+        "recover": "{{dir}} {{delta}}Δ。重新变成一个时按空格"
+      }
     },
     "l5": {
       "name": "浮现",
-      "tagline": "随机点立体视阶梯法（第二阶段）。",
-      "description": "无单眼线索的 Julesz 随机点立体图。未能获得立体视是正常结果。第二阶段提供。",
-      "gameDifficulty": "游戏难度：呈现时间。"
+      "tagline": "立体视：找出浮在点阵前面的方块。",
+      "description": "随机点里藏着一个方块，只有两眼一起工作时才能看到：它浮在点阵前面，位于上、下、左或右。用方向键或轻触那一侧作答。看不出来就按空格，这也是有效的回答。深度差会自动调整，找出你能看到的最细微深度。看不到立体是正常且有用的结果。",
+      "gameDifficulty": "游戏难度：每个图案停留的时间（难度 1 会等你作答）。",
+      "controls": "操作：用方向键（或轻触那一侧）回答浮起方块的位置；看不出来时按空格。",
+      "prompt": {
+        "where": "浮起的方块在哪里？（看不出来按空格）",
+        "right": "对，就是它",
+        "notSeen": "这次没看到，没关系，会慢慢变容易",
+        "next": "下一个图案"
+      }
     },
     "video": {
       "name": "双眼分视视频",
-      "tagline": "本地视频的分眼对比度与遮罩（第二阶段）。",
-      "description": "通过分视着色器播放您自己的本地视频文件，文件绝不会上传。DRM 流无法处理；YouTube / Bilibili 链接只能作为普通观看打开。第二阶段提供。",
-      "gameDifficulty": "不适用。"
+      "tagline": "观看你自己的视频，让两只眼均衡接收画面。",
+      "description": "以灰度给两只眼播放你设备上的视频。右眼对比度降低，并有柔和、缓慢移动的区块分别对一只眼隐藏，所以完整画面需要两只眼一起看。亮度有上限，每一帧都会检查闪烁。文件不会离开你的设备。",
+      "gameDifficulty": "这里没有游戏难度，只调整分视强度。",
+      "controls": "只需观看。坐在校准时的距离，戴好眼镜。按停止或 Esc 结束训练。",
+      "prompt": {
+        "loading": "视频加载中……",
+        "watching": "正在观看 {{name}}",
+        "tapToPlay": "按空格或轻触开始播放",
+        "ended": "视频已播完，现在可以停止训练",
+        "error": "这个视频无法在这里播放。请换一个文件（MP4 / WebM）"
+      },
+      "setup": {
+        "title": "选择要观看的视频",
+        "safetyTitle": "观看前",
+        "safetyBody": "请选择平缓的内容：避免闪烁画面、快速动作和晃动镜头。在一项分视视频研究中，14.3% 的使用者报告头痛（只戴普通眼镜组为 1.7%），通常轻微且短暂。如果头痛、恶心或眼疲劳持续，请停止并休息。",
+        "source": "来源",
+        "fromFile": "本设备上的文件",
+        "fromUrl": "视频直链",
+        "file": "视频文件",
+        "fileHint": "MP4 或 WebM 效果最好。文件只在本地读取，绝不上传。",
+        "chosen": "已选择：{{name}}",
+        "url": "视频链接（https）",
+        "urlHint": "指向视频文件的直链，且服务器允许跨域读取。很多网站不允许；那样会因无法检查画面而停止播放。Safari 在这方面也曾有问题。",
+        "httpsOnly": "请使用完整的 https:// 链接。",
+        "streamingSite": "YouTube 和哔哩哔哩的视频不能用于训练：它们的播放器不允许处理画面，下载又违反其服务条款。如果只是想看，请使用下面的“普通观看”。",
+        "loop": "循环播放",
+        "muted": "静音",
+        "plainTitle": "普通观看（不算训练）",
+        "plainBody": "在新标签页中打开 YouTube、哔哩哔哩或其他链接，正常观看。不做任何处理，也不计入训练。",
+        "plainOpen": "在新标签页打开"
+      }
     }
   },
   "metrics": {
@@ -255,7 +310,30 @@
     "meanResidualDyPx": "平均感知偏差，垂直（像素）",
     "meanResidualDelta": "平均感知偏差（Δ）",
     "probeFalseAlarms": "没有小鸡时按下空格的次数",
-    "birdToCageFinalPx": "结束时鸟与笼的距离（像素）"
+    "birdToCageFinalPx": "结束时鸟与笼的距离（像素）",
+    "starsCaught": "接住的星星",
+    "starsMissed": "漏掉的星星",
+    "catchRate": "接住率",
+    "cloudsHit": "接到的云朵",
+    "bestStreak": "最长连续",
+    "rounds": "轮数",
+    "meanBreakBO": "平均破裂点，基底向外（Δ）",
+    "meanRecoveryBO": "平均恢复点，基底向外（Δ）",
+    "meanBreakBI": "平均破裂点，基底向内（Δ）",
+    "meanRecoveryBI": "平均恢复点，基底向内（Δ）",
+    "noBreakBO": "基底向外未破裂的轮数",
+    "noBreakBI": "基底向内未破裂的轮数",
+    "maxDemandBO": "基底向外最大需求（Δ）",
+    "maxDemandBI": "基底向内最大需求（Δ）",
+    "trials": "展示的图案数",
+    "correctTrials": "答对",
+    "cantTell": "回答“看不出来”",
+    "percentCorrect": "正确率（%）",
+    "reversals": "阶梯反转次数",
+    "stereoThresholdArcsec": "立体视阈值（弧秒）",
+    "bestSeenArcsec": "看到的最细深度（弧秒）",
+    "watchedSeconds": "观看秒数",
+    "videoSeconds": "视频长度（秒）"
   },
   "intensity": {
     "low": "低",
@@ -315,7 +393,12 @@
     "dayLabel": "{{day}}：{{minutes}} 分钟",
     "runCalibration": "运行校准向导",
     "setUpCalibration": "设置校准",
-    "setUpHint": "约 10 分钟。需要红青眼镜和一张银行卡。"
+    "setUpHint": "约 10 分钟。需要红青眼镜和一张银行卡。",
+    "planEmpty": "今天的计划是空的。可以在下面添加模块，或者今天休息。",
+    "availableTitle": "可加入",
+    "addToPlan": "加入今天的计划",
+    "unlocksWith": "在前面阶段完成舒适的训练后解锁。",
+    "allUnlocked": "所有阶段都已解锁。"
   },
   "module": {
     "intensityMap": "强度映射",
@@ -514,5 +597,99 @@
       "save": "保存档案并激活",
       "channelLine": "左眼{{left}}（增益 {{leftGain}}），右眼{{right}}（增益 {{rightGain}}）"
     }
+  },
+  "trends": {
+    "title": "进展",
+    "noData": "这项指标还没有训练记录。",
+    "showTable": "以表格显示",
+    "minutes": "训练分钟数，最近 {{days}} 天",
+    "minutesSub": "所有模块合计。休息日没有关系。",
+    "dailyLimit": "每日上限 {{cap}}",
+    "balance": "L1 右眼对比度",
+    "balanceSub": "两眼越均衡，数值越高（100% 表示不再调暗）。",
+    "offset": "L2 感知偏差",
+    "offsetSub": "小球看起来对齐时，与校准位置相差多少。越低越接近。",
+    "catchRate": "L3 接住率",
+    "catchRateSub": "接住左眼星星的比例。",
+    "vergence": "L4 基底向外破裂点与恢复点",
+    "vergenceSub": "画面变成两个时的需求，以及重新融合时的需求。",
+    "break": "破裂点",
+    "recovery": "恢复点",
+    "stereo": "L5 立体视阈值",
+    "stereoSub": "看到的最细微深度差，单位弧秒。越低越精细。",
+    "diplopia": "训练后的复视",
+    "diplopiaSub": "来自训练后检查：从不、很少、有时、经常、总是。"
+  },
+  "report": {
+    "title": "给医生的训练摘要",
+    "period": "时间范围 {{from}} 至 {{to}}。",
+    "generated": "于 {{date}} 在本设备生成。",
+    "range": "时间范围",
+    "last30": "最近 30 天",
+    "last90": "最近 90 天",
+    "allTime": "全部",
+    "print": "打印 / 保存为 PDF",
+    "disclaimer": "本报告为个人健康工具的自我记录数据，不是医疗器械结果。各项测量为近似值（基于屏幕和红青眼镜），用于辅助而非替代临床评估。",
+    "setupTitle": "设置与起点",
+    "profile": "校准档案",
+    "viewing": "观看条件",
+    "viewingValue": "距屏幕 {{cm}} 厘米，每英寸 {{ppi}} 像素",
+    "clinicalPrism": "录入的临床棱镜",
+    "clinicalPrismValue": "{{delta}}Δ {{base}}，{{range}}，测量日期 {{date}}；戴棱镜时：{{fusion}}",
+    "none": "未录入",
+    "virtualPrism": "使用的虚拟棱镜",
+    "virtualPrismValue": "左眼约 {{delta}}Δ（水平 {{dx}} 像素，垂直 {{dy}} 像素），旋转 {{rot}}°",
+    "worth": "Worth 四点（屏幕版）",
+    "balance": "对比度平衡点",
+    "balanceValue": "右眼 {{value}}% 时与左眼 100% 看起来相同",
+    "clinician": "聚散 / 棱镜补偿减少练习",
+    "clinicianOn": "已在医生同意下开启",
+    "clinicianOff": "未开启",
+    "adherenceTitle": "训练依从性",
+    "daysTrained": "训练天数",
+    "daysTrainedValue": "{{of}} 天中训练了 {{days}} 天",
+    "sessions": "训练次数",
+    "sessionsValue": "{{n}} 次（完成 {{completed}} 次，停止 {{stopped}} 次）",
+    "minutes": "分钟数",
+    "minutesValue": "{{n}} 分钟",
+    "measuresTitle": "关键指标",
+    "measure": "指标",
+    "first": "期间首次",
+    "latest": "最近一次",
+    "lowerBetter": "（越低越好）",
+    "measures": {
+      "balance": "右眼对比度",
+      "offset": "感知偏差",
+      "catchRate": "左眼接住率",
+      "breakBO": "基底向外破裂点",
+      "recoveryBO": "基底向外恢复点",
+      "breakBI": "基底向内破裂点",
+      "stereo": "立体视阈值"
+    },
+    "symptomsTitle": "症状与安全",
+    "diplopiaSessions": "出现复视（有时及以上）的训练次数",
+    "headacheSessions": "出现中度或重度头痛的训练次数",
+    "stops": "按下停止的次数",
+    "redFlags": "警示信号报告",
+    "flashPauses": "闪烁自动暂停",
+    "noSymptoms": "这段时间没有报告症状。",
+    "phase": {
+      "pre": "训练前",
+      "post": "训练后",
+      "stop": "停止时"
+    },
+    "event": {
+      "stop": "按下停止",
+      "red-flag": "报告警示信号",
+      "red-flag-ack": "确认警示信号",
+      "flash-pause": "闪烁自动暂停",
+      "cap-hit": "达到每日上限",
+      "diplopia-lock": "暂停进阶（复视）",
+      "diplopia-unlock": "恢复进阶"
+    },
+    "downloads": "数据下载",
+    "csvSessions": "训练记录（CSV）",
+    "csvSymptoms": "症状检查（CSV）",
+    "csvSafety": "安全事件（CSV）"
   }
 }

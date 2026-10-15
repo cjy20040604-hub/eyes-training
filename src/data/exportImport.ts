@@ -163,6 +163,7 @@ export function sessionsToCsv(sessions: SessionRecord[], checks: SymptomCheck[])
     'postEyestrain',
     'stopEvents',
     'notes',
+    'measurements',
   ];
   const rows = sessions.map((s) => {
     const pre = s.preCheckId ? byId.get(s.preCheckId) : undefined;
@@ -187,10 +188,44 @@ export function sessionsToCsv(sessions: SessionRecord[], checks: SymptomCheck[])
       post?.eyestrain ?? '',
       s.events.filter((e) => e.type === 'stop').length,
       s.notes,
+      Object.entries(s.metrics)
+        .filter(([k]) => k !== 'lastHeartbeatMs')
+        .map(([k, v]) => `${k}=${v}`)
+        .join('; '),
     ]
       .map(csvCell)
       .join(',');
   });
+  return [header.join(','), ...rows].join('\n');
+}
+
+export function symptomsToCsv(checks: SymptomCheck[]): string {
+  const header = [
+    'at',
+    'phase',
+    'sessionId',
+    'diplopia',
+    'headache',
+    'nausea',
+    'eyestrain',
+    'confusion',
+    'notes',
+  ];
+  const rows = [...checks]
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .map((c) =>
+      [c.at, c.phase, c.sessionId ?? '', c.diplopia, c.headache, c.nausea, c.eyestrain, c.confusion, c.notes]
+        .map(csvCell)
+        .join(','),
+    );
+  return [header.join(','), ...rows].join('\n');
+}
+
+export function safetyEventsToCsv(events: SafetyEvent[]): string {
+  const header = ['at', 'type', 'sessionId', 'details'];
+  const rows = [...events]
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .map((e) => [e.at, e.type, e.sessionId ?? '', e.details].map(csvCell).join(','));
   return [header.join(','), ...rows].join('\n');
 }
 

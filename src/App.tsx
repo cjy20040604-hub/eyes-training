@@ -7,6 +7,7 @@ import { History } from './dashboard/History';
 import { ModuleView } from './dashboard/ModuleView';
 import { Overview } from './dashboard/Overview';
 import { RedFlagPage } from './dashboard/RedFlagPage';
+import { Report } from './dashboard/Report';
 import { SettingsPage } from './dashboard/SettingsPage';
 import { ensureSchemaVersion } from './data/db';
 import { disclaimerAccepted, useSettings } from './data/settingsStore';
@@ -122,6 +123,7 @@ function Layout({ children }: { children: ReactNode }) {
           </NavLink>
           <NavLink to="/calibration">{t('nav.calibration')}</NavLink>
           <NavLink to="/history">{t('nav.history')}</NavLink>
+          <NavLink to="/report">{t('nav.report')}</NavLink>
           <NavLink to="/settings">{t('nav.settings')}</NavLink>
           {locked ? <NavLink to="/red-flag">{t('nav.redFlag')}</NavLink> : null}
         </nav>
@@ -173,6 +175,7 @@ export default function App() {
               <Route path="/module/:moduleId" element={<ModuleView />} />
               <Route path="/train/:moduleId" element={<TrainingRoute />} />
               <Route path="/history" element={<History />} />
+              <Route path="/report" element={<Report />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/red-flag" element={<RedFlagPage />} />
               <Route path="*" element={<Overview />} />

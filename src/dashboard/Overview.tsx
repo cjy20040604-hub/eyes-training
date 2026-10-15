@@ -105,8 +105,18 @@ export function Overview() {
       startable: def.implemented && gate.unlocked && !capReached && enabled,
     };
   });
-  const current = rows.filter((r) => r.def.implemented);
-  const later = rows.filter((r) => !r.def.implemented);
+  // A stage is locked until its unlock conditions are met (comfortable sessions, clinician).
+  const STAGE_REASONS = [
+    'needs-stable-sessions',
+    'needs-distinct-days',
+    'recent-stop',
+    'clinician-agreement',
+  ];
+  const stageLocked = (r: RowModel) =>
+    !r.def.implemented || r.gate.reasons.some((x) => STAGE_REASONS.includes(x));
+  const current = rows.filter((r) => r.enabled && !stageLocked(r));
+  const available = rows.filter((r) => !r.enabled && !stageLocked(r));
+  const later = rows.filter(stageLocked);
   const plannedTotal = current.reduce((a, r) => a + r.plannedMinutes, 0);
   const next = current.find((r) => r.startable && !r.isDone) ?? null;
   const planDone = current.some((r) => r.enabled) && current.every((r) => !r.enabled || r.isDone);
@@ -239,6 +249,51 @@ export function Overview() {
           );
         })}
       </ul>
+      {current.length === 0 ? <p className="hint">{t('overview.planEmpty')}</p> : null}
+
+      {available.length ? (
+        <section aria-labelledby="available-title">
+          <h2 className="section-title" id="available-title">
+            {t('overview.availableTitle')}
+          </h2>
+          <ul className="later-list">
+            {available.map((r) => (
+              <li key={r.def.id} data-testid={`available-${r.def.id}`}>
+                <span className="code-badge" aria-hidden="true">
+                  {r.def.code}
+                </span>
+                <div className="available-row">
+                  <div>
+                    <strong>
+                      <span className="sr-only">{r.def.code} </span>
+                      {t(`modules.${r.def.id}.name`)}
+                    </strong>
+                    <span className="why">{t(`modules.${r.def.id}.tagline`)}</span>
+                  </div>
+                  <div className="row">
+                    <button
+                      type="button"
+                      className="btn"
+                      data-testid={`add-${r.def.id}`}
+                      onClick={() =>
+                        settings.setDailyPlanEntry(r.def.id, {
+                          enabled: true,
+                          minutes: settings.dailyPlan[r.def.id]?.minutes || r.def.defaultMinutes,
+                        })
+                      }
+                    >
+                      {t('overview.addToPlan')}
+                    </button>
+                    <Link className="btn ghost" to={`/module/${r.def.id}`}>
+                      {t('overview.details')}
+                    </Link>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="lower">
         <section aria-labelledby="week-title">
@@ -278,6 +333,7 @@ export function Overview() {
           <h2 className="section-title" id="later-title">
             {t('overview.laterTitle')}
           </h2>
+          {later.length === 0 ? <p className="hint">{t('overview.allUnlocked')}</p> : null}
           <ul className="later-list">
             {later.map((r) => {
               const needsSessions =
@@ -298,10 +354,12 @@ export function Overview() {
                       {t(`modules.${r.def.id}.name`)}
                     </strong>
                     <span className="why">
-                      {t('overview.comingLater')}
-                      {r.gate.reasons.includes('clinician-agreement')
-                        ? ` ${t('gate.clinician-agreement')}`
-                        : ''}
+                      {[
+                        r.gate.reasons.includes('recent-stop') ? t('gate.recent-stop') : '',
+                        r.gate.reasons.includes('clinician-agreement') ? t('gate.clinician-agreement') : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ') || t('overview.unlocksWith')}
                     </span>
                     {needsSessions ? (
                       <div className="unlock">

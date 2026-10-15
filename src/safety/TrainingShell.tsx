@@ -14,7 +14,7 @@ import { dayKey, nowIso } from '../data/util';
 import type { FlashReport } from '../engine/flashDetector';
 import { autoAdvance, initialProgress, moveTowardTier, type ProgressChange } from '../modules/adaptive';
 import { getModule } from '../modules/registry';
-import type { HudState } from '../modules/types';
+import type { HudState, ModuleConfig } from '../modules/types';
 import { Banner, Button, Card, Progress } from '../ui';
 import { allowedSessionMinutes, isBreakDue, minutesUsedOnDay } from './caps';
 import { ErgonomicsCard } from './ErgonomicsCard';
@@ -57,6 +57,9 @@ export function TrainingShell() {
   const [breaksTaken, setBreaksTaken] = useState(0);
   const [breakLeftMs, setBreakLeftMs] = useState(0);
   const [postureNote, setPostureNote] = useState('');
+  const [setupConfig, setSetupConfig] = useState<ModuleConfig | null>(null);
+  const [setupMissing, setSetupMissing] = useState(false);
+  const [pausedReason, setPausedReason] = useState<'hidden' | 'idle'>('hidden');
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [progress, setProgress] = useState<ModuleProgress | null>(null);
   const [outcome, setOutcome] = useState<{
@@ -122,6 +125,11 @@ export function TrainingShell() {
   // ---- Start session after pre-check ----
   const startSession = async (pre: SymptomCheckSubmit) => {
     if (!calibration) return;
+    if (def.setup && !setupConfig) {
+      setSetupMissing(true);
+      window.scrollTo(0, 0);
+      return;
+    }
     await saveCheck(pre.check);
     if (Object.values(pre.redFlags).some(Boolean)) {
       await lockForRedFlag('pre-check', null);
@@ -243,6 +251,7 @@ export function TrainingShell() {
     if (phase !== 'running') return;
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
+        setPausedReason('hidden');
         setOverlay((o) => (o === null ? 'paused' : o));
       }
     };
@@ -420,6 +429,21 @@ export function TrainingShell() {
             distance: calibration?.viewingDistanceCm ?? '?',
           })}
         </Banner>
+        {def.setup ? (
+          <>
+            <def.setup
+              onChange={(c) => {
+                setSetupConfig(c);
+                if (c) setSetupMissing(false);
+              }}
+            />
+            {setupMissing ? (
+              <Banner tone="warn" role="alert">
+                {t('training.setupMissing')}
+              </Banner>
+            ) : null}
+          </>
+        ) : null}
         <div className="field">
           <label htmlFor="posture-note">{t('training.postureNote')}</label>
           <input
@@ -457,7 +481,7 @@ export function TrainingShell() {
           <span data-testid="hud-score">{t('training.score', { score: hud.score })}</span>
           <span className="spacer" />
           <span data-testid="hud-prompt" aria-live="polite">
-            {hud.promptKey ? t(hud.promptKey) : ''}
+            {hud.promptKey ? t(hud.promptKey, hud.promptParams ?? {}) : ''}
           </span>
           {hud.roundProgress !== null ? (
             <div style={{ width: 90 }} title={t('training.holdProgress')}>
@@ -486,6 +510,11 @@ export function TrainingShell() {
             onEvent={emitEvent}
             metricsRef={metricsRef}
             frameClockRef={frameClockRef}
+            config={setupConfig ?? {}}
+            onIdle={() => {
+              setPausedReason('idle');
+              setOverlay((o) => (o === null ? 'paused' : o));
+            }}
           />
         ) : null}
         {overlay === 'break' ? (
@@ -500,8 +529,8 @@ export function TrainingShell() {
         {overlay === 'paused' && phase === 'running' ? (
           <div className="training-overlay" role="dialog" data-testid="overlay-paused">
             <div className="panel">
-              <h2>{t('training.pausedTitle')}</h2>
-              <p>{t('training.pausedBody')}</p>
+              <h2>{t(pausedReason === 'idle' ? 'training.idleTitle' : 'training.pausedTitle')}</h2>
+              <p>{t(pausedReason === 'idle' ? 'training.idleBody' : 'training.pausedBody')}</p>
               <div className="row" style={{ justifyContent: 'center' }}>
                 <Button
                   variant="primary"
@@ -520,10 +549,16 @@ export function TrainingShell() {
         {overlay === 'flash' ? (
           <div className="training-overlay" role="alertdialog" data-testid="overlay-flash">
             <div className="panel">
-              <h2>{t('training.flashTitle')}</h2>
-              <p>{t('training.flashBody', { rate: flashReport?.flashRate.toFixed(1) ?? '?' })}</p>
+              <h2>{t(flashReport?.unverifiable ? 'training.unverifiableTitle' : 'training.flashTitle')}</h2>
+              <p>
+                {flashReport?.unverifiable
+                  ? t('training.unverifiableBody')
+                  : t('training.flashBody', { rate: flashReport?.flashRate.toFixed(1) ?? '?' })}
+              </p>
               <div className="row" style={{ justifyContent: 'center' }}>
-                <Button onClick={() => setOverlay(null)}>{t('training.resume')}</Button>
+                {flashReport?.unverifiable ? null : (
+                  <Button onClick={() => setOverlay(null)}>{t('training.resume')}</Button>
+                )}
                 <Button variant="danger" onClick={onStop}>
                   {t('safety.stopButton')}
                 </Button>

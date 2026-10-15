@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import type { CalibrationProfile, IntensityTier, ModuleId, SessionEvent } from '../data/schema';
 import type { EyeLayer, RenderOptions } from '../engine/renderer';
 import type { TransitionGuard } from '../engine/transitionGuard';
@@ -44,10 +45,15 @@ export type Performance = 'good' | 'ok' | 'poor';
 export interface HudState {
   /** i18n key of the current prompt shown outside the stimulus area. */
   promptKey: string;
+  /** Interpolation values for the prompt (e.g. the current vergence demand). */
+  promptParams?: Record<string, string | number>;
   score: number;
   /** 0..1 progress indicator for the current round, if any. */
   roundProgress: number | null;
 }
+
+/** Per-session settings chosen before a module starts (e.g. the video file). */
+export type ModuleConfig = Record<string, string | number | boolean>;
 
 export interface ModuleRuntimeContext {
   calibration: CalibrationProfile;
@@ -58,6 +64,9 @@ export interface ModuleRuntimeContext {
   reducedMotion: boolean;
   width: number;
   height: number;
+  /** Device pixel ratio of the stimulus canvas (for sub-CSS-pixel disparities). */
+  dpr: number;
+  config: ModuleConfig;
   emit(type: SessionEvent['type'], data?: SessionEvent['data']): void;
   random: () => number;
 }
@@ -72,7 +81,14 @@ export interface ModuleInstance {
   renderOverrides(base: RenderOptions): RenderOptions;
   hud(): HudState;
   metrics(): Record<string, number>;
+  /** Called when breaks, overlays or STOP pause/resume the session (e.g. to pause a video). */
+  setPaused?(paused: boolean): void;
   stop(): void;
+}
+
+/** Props for a module's optional setup step, shown before the pre-session check. */
+export interface ModuleSetupProps {
+  onChange(config: ModuleConfig | null): void;
 }
 
 export interface ModuleDefinition {
@@ -83,8 +99,15 @@ export interface ModuleDefinition {
   maxMinutes: number;
   defaultMinutes: number;
   intensity: IntensityMap;
-  /** Phase 1 modules are implemented; others are listed but not runnable yet. */
+  /** Modules that are listed but not runnable yet. */
   implemented: boolean;
+  /**
+   * Whether the user is expected to give input continuously. If true, 60 s without any
+   * input pauses the session ("honest dose": idle time is not counted as training).
+   */
+  requiresInput: boolean;
+  /** Optional setup component; the session cannot start until it reports a config. */
+  setup?: ComponentType<ModuleSetupProps>;
   create(ctx: ModuleRuntimeContext): ModuleInstance;
   /** Rate a finished session from its metrics and actual minutes. */
   assess(metrics: Record<string, number>, minutes: number): Performance;

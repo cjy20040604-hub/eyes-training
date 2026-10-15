@@ -229,8 +229,9 @@ test('three days of L1 + L2 training: play, complete, progress, unlock gate', as
 
   // 6 clean sessions on 3 days: the L3 gate no longer asks for more sessions.
   await page.goto('/#/');
-  await expect(l3Card).toContainText('Arrives in phase 2');
-  await expect(l3Card).toContainText('Session requirement met');
+  // L3 is now unlocked and offered under "Ready to add".
+  await expect(page.getByTestId('available-l3')).toBeVisible();
+  await expect(page.getByTestId('later-l3')).toHaveCount(0);
   // L4 (vergence) additionally still needs clinician agreement.
   await expect(page.getByTestId('later-l4')).toContainText('clinician agreement');
 

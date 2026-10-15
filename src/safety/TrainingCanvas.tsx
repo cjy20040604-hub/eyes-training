@@ -16,7 +16,10 @@ import {
 } from '../engine/renderer';
 import { TransitionGuard } from '../engine/transitionGuard';
 import { degreesToPx, type ScreenGeometry } from '../engine/units';
-import type { HudState, ModuleDefinition, ModuleInstance } from '../modules/types';
+import type { HudState, ModuleConfig, ModuleDefinition, ModuleInstance } from '../modules/types';
+
+/** Without any input for this long, an input-driven module pauses (idle time is not training). */
+export const IDLE_PAUSE_MS = 60_000;
 
 export interface TrainingCanvasProps {
   def: ModuleDefinition;
@@ -35,6 +38,10 @@ export interface TrainingCanvasProps {
   metricsRef: React.MutableRefObject<(() => Record<string, number>) | null>;
   /** Set to performance.now() on every drawn frame, so the session timer can tell a frozen stimulus. */
   frameClockRef?: React.MutableRefObject<number>;
+  /** Per-session module settings from the setup step (e.g. the chosen video). */
+  config?: ModuleConfig;
+  /** Called once when an input-driven module has had no input for IDLE_PAUSE_MS. */
+  onIdle?: () => void;
 }
 
 export function baseRenderOptions(
@@ -61,6 +68,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runningRef = useRef(props.running);
+  const moduleRef = useRef<ModuleInstance | null>(null);
   const propsRef = useRef(props);
   propsRef.current = props;
   runningRef.current = props.running;
@@ -113,17 +121,39 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       reducedMotion: p.reducedMotion,
       width,
       height,
+      dpr,
+      config: p.config ?? {},
       emit: (type, data) => propsRef.current.onEvent(type, data),
       random: Math.random,
     });
+    moduleRef.current = module;
     p.metricsRef.current = () => module.metrics();
     const base = baseRenderOptions(p.calibration, p.cyclotorsionEnabled);
 
     let started = false;
     let lastFlashLevel: 'ok' | 'warn' | 'danger' = 'ok';
     let hudTimer = 0;
+    let lastInputAt = performance.now();
+    let idleReported = false;
+    let wasRunning = true;
+    const noteInput = () => {
+      lastInputAt = performance.now();
+      idleReported = false;
+    };
     const loop = new FrameLoop((dt, now) => {
-      if (!runningRef.current) return;
+      if (!runningRef.current) {
+        wasRunning = false;
+        return;
+      }
+      if (!wasRunning) {
+        // Resuming after a break or overlay: the idle clock starts again.
+        wasRunning = true;
+        noteInput();
+      }
+      if (p.def.requiresInput && !idleReported && performance.now() - lastInputAt > IDLE_PAUSE_MS) {
+        idleReported = true;
+        propsRef.current.onIdle?.();
+      }
       if (!started) {
         module.start(now);
         started = true;
@@ -143,9 +173,10 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
           if (report.level !== 'ok') propsRef.current.onFlash(report);
         }
       } catch {
-        // Tainted canvas: cannot verify. Treat as danger.
+        // Tainted canvas (e.g. a video without CORS): cannot verify. Treat as danger.
         propsRef.current.onFlash({
           level: 'danger',
+          unverifiable: true,
           flashRate: 0,
           redFlashRate: 0,
           flashingAreaFraction: 0,
@@ -177,6 +208,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
     const MOVE_KEYS = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
     const onKeyDown = (e: KeyboardEvent) => {
       if (!runningRef.current) return;
+      noteInput();
       const key = e.key.toLowerCase();
       if (key === ' ' || key === 'enter') {
         e.preventDefault();
@@ -205,6 +237,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
     };
     const onPointerDown = (e: PointerEvent) => {
       if (!runningRef.current) return;
+      noteInput();
       e.preventDefault();
       try {
         canvas.setPointerCapture(e.pointerId);
@@ -246,6 +279,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
         const ax = dead(gp.axes[0] ?? 0);
         const ay = dead(gp.axes[1] ?? 0);
         if (ax || ay) {
+          noteInput();
           gpActive = true;
           sendDirection(Math.round(ax * 10) / 10, Math.round(ay * 10) / 10);
         } else if (gpActive) {
@@ -253,7 +287,10 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
           sendDirection(0, 0);
         }
         const pressed = !!gp.buttons[0]?.pressed;
-        if (pressed && !gpWasPressed) module.input({ type: 'action' });
+        if (pressed && !gpWasPressed) {
+          noteInput();
+          module.input({ type: 'action' });
+        }
         gpWasPressed = pressed;
       }, 50);
     }
@@ -270,11 +307,17 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       module.stop();
+      moduleRef.current = null;
       renderer.dispose();
       p.metricsRef.current = null;
     };
     // The module is created once per mount; parameter changes require a remount (new session).
   }, []);
+
+  // Let the module pause its own media (e.g. the video) during breaks, overlays and STOP.
+  useEffect(() => {
+    moduleRef.current?.setPaused?.(!props.running);
+  }, [props.running]);
 
   return (
     <div className="training-canvas-wrap" ref={wrapRef}>

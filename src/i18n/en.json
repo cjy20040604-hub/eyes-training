@@ -13,7 +13,8 @@
     "calibration": "Calibration",
     "history": "History",
     "settings": "Settings",
-    "redFlag": "Red flag"
+    "redFlag": "Red flag",
+    "report": "Report"
   },
   "common": {
     "cancel": "Cancel",
@@ -168,7 +169,12 @@
       }
     },
     "recalibrateTitle": "What you see may differ from your calibration",
-    "recalibrateBody": "You pressed Space several times when the ball looked inside the ring, but by your calibrated prism offset it was still far away. With your glasses on, redo step 6 (prism offset) of the calibration wizard, and check the prism direction you entered."
+    "recalibrateBody": "You pressed Space several times when the ball looked inside the ring, but by your calibrated prism offset it was still far away. With your glasses on, redo step 6 (prism offset) of the calibration wizard, and check the prism direction you entered.",
+    "setupMissing": "Choose what to watch first (above), then save the check.",
+    "idleTitle": "Still there?",
+    "idleBody": "No input for a minute, so the session paused and the timer stopped. Idle time does not count as training. Resume when you are ready.",
+    "unverifiableTitle": "This video cannot be checked for flashing",
+    "unverifiableBody": "The site hosting this video does not allow its frames to be read, so the app cannot watch it for flashing light. Playback has stopped. Use a video file from your own device instead."
   },
   "gate": {
     "training-locked": "Training is locked after a red-flag report. Open the Red flag page.",
@@ -211,27 +217,76 @@
     },
     "l3": {
       "name": "Don't Lose the Left",
-      "tagline": "Anti-suppression catch (Phase 2).",
-      "description": "Targets visible only to the left eye must be caught while the right eye sees the playing field (MFBF style). Ships in Phase 2.",
-      "gameDifficulty": "Game difficulty: target speed and size."
+      "tagline": "Anti-suppression: stars for the left eye, the basket for the right.",
+      "description": "Stars fall that only your LEFT eye can see; the basket you move is seen by your RIGHT eye, so catching needs both eyes at once. From game level 2, clouds fall that only the right eye sees: avoid them. Intensity lowers the right eye’s contrast; game difficulty changes speed, star size and basket width.",
+      "gameDifficulty": "Game difficulty: fall speed, star size, spawn rate, basket width; clouds from level 2.",
+      "controls": "Controls: hold the left / right arrow keys (or A / D) to move the basket, or click / tap where it should go.",
+      "prompt": {
+        "catch": "Catch the stars",
+        "cloud": "That was a cloud. Avoid the clouds",
+        "streak": "Streak of {{streak}}!"
+      }
     },
     "l4": {
       "name": "Stretch",
-      "tagline": "Fusional vergence with tiny base-out / base-in demand (Phase 2, clinician gated).",
-      "description": "Small virtual vergence demands with break/recovery recording, vertical demand kept near zero, ceilings far below normal adult amplitudes. Ships in Phase 2 and requires clinician agreement.",
-      "gameDifficulty": "Game difficulty: target complexity."
+      "tagline": "Fusional vergence: keep the cross inside the square as the images separate.",
+      "description": "Your left eye sees a square and your right eye a cross. When the images fuse, the cross sits in the square. The two pictures then slowly move apart, alternating base-out (eyes turn in) and base-in (eyes turn out). Press Space the moment you see two, or the cross leaves the square; the images then come back together, and you press Space again when it is single. This records break and recovery. Divergence is capped at 6Δ, convergence at 12Δ, and there is never any vertical demand. Requires clinician agreement.",
+      "gameDifficulty": "Game difficulty: ramp speed and target size.",
+      "controls": "Controls: press Space (or click / tap) once when it doubles, and once more when it is single again. Do not strain; doubling is the expected end of each round.",
+      "prompt": {
+        "rest": "Rest. Next round in a moment",
+        "easy": "Take it easy: breaks are coming early today. Rest longer between rounds",
+        "stretch": "{{dir}} {{delta}}Δ. Press Space when you see two",
+        "hold": "{{dir}} {{delta}}Δ. Limit reached, coming back",
+        "recover": "{{dir}} {{delta}}Δ. Press Space when it is single again"
+      }
     },
     "l5": {
       "name": "Pop-Out",
-      "tagline": "Random-dot stereopsis staircase (Phase 2).",
-      "description": "Julesz random-dot stereograms with no monocular cue. Not achieving stereopsis is a normal outcome. Ships in Phase 2.",
-      "gameDifficulty": "Game difficulty: presentation time."
+      "tagline": "Stereo depth: find the square that floats in front of the dots.",
+      "description": "Random dots hide a square that is only visible with both eyes working together: it floats in front of the field at the top, bottom, left or right. Answer with the arrow keys or by tapping that side. If you cannot tell, press Space; that is a valid answer. The depth difference adapts to find the finest you can see. Not seeing depth is a normal, useful result.",
+      "gameDifficulty": "Game difficulty: how long each pattern stays (level 1 waits for your answer).",
+      "controls": "Controls: arrow keys (or tap the side) for where the floating square is; Space if you cannot tell.",
+      "prompt": {
+        "where": "Where is the floating square? (Space: cannot tell)",
+        "right": "Yes, that was it",
+        "notSeen": "Not this time. That is fine; it gets easier",
+        "next": "Next pattern"
+      }
     },
     "video": {
       "name": "Dichoptic Video",
-      "tagline": "Local video with per-eye contrast and masks (Phase 2).",
-      "description": "Play your own local video files through a dichoptic shader. Files are never uploaded. DRM streams cannot be processed; YouTube/Bilibili links can only be opened for plain viewing. Ships in Phase 2.",
-      "gameDifficulty": "Not applicable."
+      "tagline": "Watch your own video with balanced input to both eyes.",
+      "description": "Plays a video from your own device in grey for both eyes. The right eye’s contrast is lowered and soft, slowly moving patches are hidden from one eye or the other, so the whole picture needs both eyes. Brightness is capped and every frame is checked for flashing. Files never leave your device.",
+      "gameDifficulty": "There is no game difficulty here; only the dichoptic strength changes.",
+      "controls": "Just watch. Sit back at your calibrated distance with your glasses on. STOP or Esc ends the session.",
+      "prompt": {
+        "loading": "Loading the video…",
+        "watching": "Watching {{name}}",
+        "tapToPlay": "Press Space or tap to start playback",
+        "ended": "The video ended. You can STOP the session now",
+        "error": "This video cannot be played here. Try another file (MP4 / WebM)"
+      },
+      "setup": {
+        "title": "Choose what to watch",
+        "safetyTitle": "Before you watch",
+        "safetyBody": "Pick calm content: avoid flashing scenes, fast action and shaky camera work. In a dichoptic video trial, headache was reported by 14.3% of users (vs 1.7% with glasses alone), usually mild and brief. Stop and rest if you get a headache, nausea or eye strain that lasts.",
+        "source": "Source",
+        "fromFile": "File on this device",
+        "fromUrl": "Direct video link",
+        "file": "Video file",
+        "fileHint": "MP4 or WebM work best. The file is read locally and never uploaded.",
+        "chosen": "Chosen: {{name}}",
+        "url": "Video link (https)",
+        "urlHint": "A direct link to a video file whose server allows cross-origin access. Many sites do not; then playback stops because the frames cannot be checked. Safari has had bugs here too.",
+        "httpsOnly": "Use a full https:// link.",
+        "streamingSite": "YouTube and Bilibili videos cannot be used for training: their players do not allow processing, and downloading them is against their terms. Use \"Plain viewing\" below if you just want to watch.",
+        "loop": "Loop the video",
+        "muted": "Mute the sound",
+        "plainTitle": "Plain viewing (not training)",
+        "plainBody": "Opens a YouTube, Bilibili or other link in a new tab for ordinary viewing. Nothing is processed and it does not count as training.",
+        "plainOpen": "Open in a new tab"
+      }
     }
   },
   "metrics": {
@@ -255,7 +310,30 @@
     "meanResidualDyPx": "Mean perceived offset, vertical (px)",
     "meanResidualDelta": "Mean perceived offset (Δ)",
     "probeFalseAlarms": "Space pressed with no chick",
-    "birdToCageFinalPx": "Final bird–cage distance (px)"
+    "birdToCageFinalPx": "Final bird–cage distance (px)",
+    "starsCaught": "Stars caught",
+    "starsMissed": "Stars missed",
+    "catchRate": "Catch rate",
+    "cloudsHit": "Clouds caught",
+    "bestStreak": "Best streak",
+    "rounds": "Rounds",
+    "meanBreakBO": "Mean break, base-out (Δ)",
+    "meanRecoveryBO": "Mean recovery, base-out (Δ)",
+    "meanBreakBI": "Mean break, base-in (Δ)",
+    "meanRecoveryBI": "Mean recovery, base-in (Δ)",
+    "noBreakBO": "Base-out rounds without a break",
+    "noBreakBI": "Base-in rounds without a break",
+    "maxDemandBO": "Highest base-out demand (Δ)",
+    "maxDemandBI": "Highest base-in demand (Δ)",
+    "trials": "Patterns shown",
+    "correctTrials": "Correct",
+    "cantTell": "Answered \"cannot tell\"",
+    "percentCorrect": "Percent correct",
+    "reversals": "Staircase reversals",
+    "stereoThresholdArcsec": "Stereo threshold (arcsec)",
+    "bestSeenArcsec": "Finest depth seen (arcsec)",
+    "watchedSeconds": "Seconds watched",
+    "videoSeconds": "Video length (s)"
   },
   "intensity": {
     "low": "Low",
@@ -315,7 +393,12 @@
     "dayLabel": "{{day}}: {{minutes}} minutes",
     "runCalibration": "Run the calibration wizard",
     "setUpCalibration": "Set up calibration",
-    "setUpHint": "About 10 minutes. You need your red-cyan glasses and a bank card."
+    "setUpHint": "About 10 minutes. You need your red-cyan glasses and a bank card.",
+    "planEmpty": "Nothing is in today’s plan. Add a module below, or rest today.",
+    "availableTitle": "Ready to add",
+    "addToPlan": "Add to today’s plan",
+    "unlocksWith": "Unlocks after comfortable sessions on earlier stages.",
+    "allUnlocked": "All stages are unlocked."
   },
   "module": {
     "intensityMap": "Intensity mapping",
@@ -514,5 +597,99 @@
       "save": "Save profile and activate",
       "channelLine": "Left eye {{left}} (gain {{leftGain}}), right eye {{right}} (gain {{rightGain}})"
     }
+  },
+  "trends": {
+    "title": "Progress",
+    "noData": "No sessions yet for this measure.",
+    "showTable": "Show as a table",
+    "minutes": "Training minutes, last {{days}} days",
+    "minutesSub": "All modules combined. Rest days are fine.",
+    "dailyLimit": "Daily limit {{cap}}",
+    "balance": "L1 right-eye contrast",
+    "balanceSub": "Rises as the two eyes work more evenly (100% = no dimming).",
+    "offset": "L2 perceived offset",
+    "offsetSub": "How far from the calibrated position the ball looked aligned. Lower is closer.",
+    "catchRate": "L3 catch rate",
+    "catchRateSub": "Share of left-eye stars caught.",
+    "vergence": "L4 base-out break and recovery",
+    "vergenceSub": "Demand at which the image doubled, and where it fused again.",
+    "break": "Break",
+    "recovery": "Recovery",
+    "stereo": "L5 stereo threshold",
+    "stereoSub": "Finest depth difference seen, in arcseconds. Lower is finer.",
+    "diplopia": "Double vision after sessions",
+    "diplopiaSub": "From the post-session check: never, rarely, sometimes, often, always."
+  },
+  "report": {
+    "title": "Summary for your clinician",
+    "period": "Period {{from}} to {{to}}.",
+    "generated": "Generated {{date}} on this device.",
+    "range": "Period",
+    "last30": "Last 30 days",
+    "last90": "Last 90 days",
+    "allTime": "All time",
+    "print": "Print / save as PDF",
+    "disclaimer": "Self-recorded data from a personal wellness tool, not a medical device. Measures are approximate (screen-based, anaglyph glasses) and are meant to support, not replace, a clinical assessment.",
+    "setupTitle": "Setup and starting point",
+    "profile": "Calibration profile",
+    "viewing": "Viewing",
+    "viewingValue": "{{cm}} cm from the screen, {{ppi}} pixels per inch",
+    "clinicalPrism": "Clinical prism entered",
+    "clinicalPrismValue": "{{delta}}Δ {{base}}, {{range}}, measured {{date}}; with prism: {{fusion}}",
+    "none": "None entered",
+    "virtualPrism": "Virtual prism used",
+    "virtualPrismValue": "≈ {{delta}}Δ on the left eye (dx {{dx}} px, dy {{dy}} px), rotation {{rot}}°",
+    "worth": "Worth 4-dot (on screen)",
+    "balance": "Contrast balance point",
+    "balanceValue": "Right eye at {{value}}% looked equal to the left eye at 100%",
+    "clinician": "Vergence / prism-reduction work",
+    "clinicianOn": "Enabled with clinician agreement",
+    "clinicianOff": "Not enabled",
+    "adherenceTitle": "Adherence",
+    "daysTrained": "Days trained",
+    "daysTrainedValue": "{{days}} of {{of}} days",
+    "sessions": "Sessions",
+    "sessionsValue": "{{n}} ({{completed}} completed, {{stopped}} stopped)",
+    "minutes": "Minutes",
+    "minutesValue": "{{n}} minutes",
+    "measuresTitle": "Key measures",
+    "measure": "Measure",
+    "first": "First in period",
+    "latest": "Latest",
+    "lowerBetter": "(lower is better)",
+    "measures": {
+      "balance": "right-eye contrast",
+      "offset": "perceived offset",
+      "catchRate": "left-eye catch rate",
+      "breakBO": "base-out break",
+      "recoveryBO": "base-out recovery",
+      "breakBI": "base-in break",
+      "stereo": "stereo threshold"
+    },
+    "symptomsTitle": "Symptoms and safety",
+    "diplopiaSessions": "Sessions with double vision (sometimes or more)",
+    "headacheSessions": "Sessions with moderate or severe headache",
+    "stops": "STOP presses",
+    "redFlags": "Red-flag reports",
+    "flashPauses": "Flash auto-pauses",
+    "noSymptoms": "No symptoms were reported in this period.",
+    "phase": {
+      "pre": "before",
+      "post": "after",
+      "stop": "at STOP"
+    },
+    "event": {
+      "stop": "STOP pressed",
+      "red-flag": "Red flag reported",
+      "red-flag-ack": "Red flag acknowledged",
+      "flash-pause": "Flash auto-pause",
+      "cap-hit": "Daily limit reached",
+      "diplopia-lock": "Progression paused (double vision)",
+      "diplopia-unlock": "Progression resumed"
+    },
+    "downloads": "Data downloads",
+    "csvSessions": "Sessions (CSV)",
+    "csvSymptoms": "Symptom checks (CSV)",
+    "csvSafety": "Safety events (CSV)"
   }
 }

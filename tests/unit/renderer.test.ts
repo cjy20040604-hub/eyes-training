@@ -26,6 +26,8 @@ function ctx(over: Partial<ModuleRuntimeContext> = {}): ModuleRuntimeContext {
     height: 450,
     emit: () => {},
     random: seededRandom(1),
+    dpr: 1,
+    config: {},
     ...over,
   };
 }

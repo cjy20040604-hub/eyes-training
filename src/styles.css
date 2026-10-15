@@ -779,6 +779,14 @@ thead th {
   font-size: var(--step--1);
 }
 
+.available-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .later-list strong {
   display: block;
 }
@@ -1128,5 +1136,210 @@ thead th {
   }
   .card {
     break-inside: avoid;
+  }
+}
+
+/* ================= Charts (palette validated with the dataviz validator) ================= */
+:root {
+  --series-1: #2847b5;
+  --series-2: #c95220;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --series-1: #6f8cf0;
+    --series-2: #d95926;
+  }
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
+  gap: 26px 40px;
+}
+
+.chart {
+  margin: 0;
+  min-width: 0;
+}
+
+.chart figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.chart-plot {
+  position: relative;
+  width: 100%;
+}
+
+.chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart .grid {
+  stroke: var(--rule-soft);
+  stroke-width: 1;
+}
+
+.chart .reference {
+  stroke: var(--ink-muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.chart .crosshair {
+  stroke: var(--ink-muted);
+  stroke-width: 1;
+}
+
+.chart .tick {
+  fill: var(--ink-muted);
+  font-size: 12px;
+}
+
+.chart .direct-label {
+  fill: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chart .series path {
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart .series circle {
+  stroke: var(--paper);
+  stroke-width: 2;
+}
+
+.chart .series.s1 path {
+  stroke: var(--series-1);
+}
+.chart .series.s1 circle {
+  fill: var(--series-1);
+}
+.chart .series.s2 path {
+  stroke: var(--series-2);
+  stroke-dasharray: 6 4;
+}
+.chart .series.s2 circle {
+  fill: var(--series-2);
+}
+
+.chart .bar {
+  fill: var(--series-1);
+}
+.chart .bar.active {
+  fill: var(--ink);
+}
+.chart .hit {
+  fill: transparent;
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 4px;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.swatch.s1 {
+  background: var(--series-1);
+}
+.swatch.s2 {
+  background: var(--series-2);
+}
+
+.chart-legend {
+  margin: 0 0 6px;
+}
+
+.chart-tip {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 6px 9px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.chart-table {
+  margin-top: 6px;
+  font-size: var(--step--1);
+}
+
+.chart-table summary {
+  cursor: pointer;
+  color: var(--cobalt);
+}
+
+.chart-empty {
+  padding: 22px 0;
+  border-top: 1px dashed var(--rule);
+  border-bottom: 1px dashed var(--rule);
+}
+
+/* ================= Video setup ================= */
+.video-setup {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.plain-viewing {
+  margin-top: 12px;
+}
+
+.plain-viewing summary {
+  cursor: pointer;
+  color: var(--cobalt);
+}
+
+/* ================= Clinician report ================= */
+.report-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: minmax(150px, max-content) 1fr;
+  gap: 6px 18px;
+  margin: 0;
+}
+
+.kv dt {
+  color: var(--ink-muted);
+}
+
+.kv dd {
+  margin: 0;
+}
+
+@media print {
+  .charts {
+    grid-template-columns: 1fr 1fr;
+  }
+  .chart {
+    break-inside: avoid;
+  }
+  .chart-tip {
+    display: none;
   }
 }

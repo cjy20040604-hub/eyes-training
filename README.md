@@ -20,7 +20,7 @@ treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) firs
 
 **这不是医疗治疗，也不是医疗器械。** 它不诊断、不治疗、不治愈、不预防任何疾病。使用前请先阅读 [docs/SAFETY.md](docs/SAFETY.md)。
 
-## What it does (Phase 1) · 功能（第一阶段）
+## What it does · 功能
 
 - Safety layer: enforced onboarding disclaimer, always-visible black/white STOP button
   (Esc), pre/post symptom checks (PEDIG/ATS diplopia scale), red-flag lock-out, per-session
@@ -41,24 +41,43 @@ treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) firs
 
   引擎：左右眼独立图层，可替换渲染器（红青立体 Canvas 2D / WebGL、左右并排、WebXR 占位），每只眼独立的仿射变换，阶梯法，亮度变化限速器，闪烁检测器。
 
-- Modules L1 "Both Eyes On" and L2 "Line Them Up", each separating visual difficulty
-  (intensity metric) from game difficulty.
+- Six training modules, each separating visual difficulty (intensity metric) from game
+  difficulty, unlocked step by step:
+  - L1 "Both Eyes On" (simultaneous perception) and L2 "Line Them Up" (flat fusion, with
+    perceived-offset tracking).
+  - L3 "Don't Lose the Left" (anti-suppression catch: the weak eye sees the stars, the strong
+    eye sees the basket).
+  - L4 "Stretch" (fusional vergence with break / recovery, horizontal only, clinician-gated).
+  - L5 "Pop-Out" (Julesz random-dot stereograms with a 2-down/1-up disparity staircase).
+  - Dichoptic video (your own local video with reduced strong-eye contrast and complementary
+    masks; brightness-capped and flash-checked).
 
-  训练模块 L1“双眼同看”和 L2“对齐它们”，视觉难度（强度指标）与游戏难度分开调节。
+  六个训练模块，视觉难度（强度指标）与游戏难度分开调节，并逐步解锁：
+  - L1“双眼同看”（同时知觉）和 L2“对齐它们”（平面融合，并记录感知偏差）。
+  - L3“别丢了左眼”（抗抑制接星星：弱眼看星星，强眼看篮子）。
+  - L4“伸展”（融合性聚散，记录破裂点与恢复点，只有水平方向，需医生同意）。
+  - L5“浮现”（Julesz 随机点立体图，2 降 1 升阶梯法测立体视阈值）。
+  - 分视视频（播放你本地的视频，降低强眼对比度并加互补遮罩；限制亮度并检查闪烁）。
 
-- Dashboard: planned vs actual minutes and intensity per module per day, daily cap, 7-day
-  view, history, CSV export and print-to-PDF, JSON backup/import, English + 简体中文.
+- Dashboard: today's plan with a prism-bar meter, "ready to add" stages, unlock progress,
+  progress charts (minutes, eye balance, perceived offset, catch rate, vergence break /
+  recovery, stereo threshold, double vision), a printable clinician report with CSV
+  downloads, JSON backup/import, English + 简体中文.
 
-  仪表盘：每个模块每天的计划与实际时长和强度，每日上限，近 7 天视图，历史记录，CSV 导出与打印为 PDF，JSON 备份与导入，英文和简体中文界面。
+  仪表盘：今天的计划与棱镜排进度条，可加入的阶段与解锁进度，进展图表（训练分钟、双眼平衡、感知偏差、接住率、聚散破裂/恢复点、立体视阈值、复视），可打印的医生报告与 CSV 下载，JSON 备份与导入，英文和简体中文界面。
+
+- Honest dose: the session timer only runs while the stimulus is drawn, and input-driven
+  modules pause after a minute without input.
+
+  诚实计时：只有画面真正在运行时才计时，需要操作的模块一分钟无操作会自动暂停。
 
 - PWA: installable, works offline, prompt-based service worker updates.
 
   PWA：可安装，可离线使用，有新版本时提示更新。
 
-Phase 2 (L3–L5, dichoptic video, clinician report) and Phase 3 (encrypted export, WebXR)
-are listed in [CHANGELOG.md](CHANGELOG.md).
+Phase 3 (encrypted export, WebXR side-by-side) is planned; see [CHANGELOG.md](CHANGELOG.md).
 
-第二阶段（L3–L5、分视视频、医生报告）和第三阶段（加密导出、WebXR）的计划见 [CHANGELOG.md](CHANGELOG.md)。
+第三阶段（加密导出、WebXR 左右分屏）的计划见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## Run · 本地运行
 

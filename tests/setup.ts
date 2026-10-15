@@ -31,6 +31,14 @@ function ctxStub(): CanvasRenderingContext2D {
     stroke: noop,
     clip: noop,
     transform: noop,
+    setLineDash: noop,
+    createImageData: (w: number, h: number) => ({
+      data: new Uint8ClampedArray(w * h * 4),
+      width: w,
+      height: h,
+    }),
+    putImageData: noop,
+    filter: 'none',
     fillText: noop,
     drawImage: noop,
     getImageData: (_x: number, _y: number, w: number, h: number) => ({
