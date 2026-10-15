@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { acceptDisclaimer, bundle, importBundle, unlockedHistory } from './helpers';
 
 /**
  * Phase 2 end-to-end: unlocked stages appear under "Ready to add", each new module runs
@@ -9,115 +10,13 @@ import { expect, test, type Page } from '@playwright/test';
 test.setTimeout(4 * 60_000);
 test.use({ viewport: { width: 1100, height: 720 } });
 
-function dayKey(offset: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function bundle() {
-  const sessions = [];
-  const checks = [];
-  for (const [i, off] of [-3, -3, -2, -2, -1, -1].entries()) {
-    const day = dayKey(off);
-    const id = `s${i}`;
-    const moduleId = i % 2 === 0 ? 'l1' : 'l2';
-    sessions.push({
-      id,
-      moduleId,
-      calibrationId: 'cal_e2e',
-      rendererId: 'anaglyph-canvas2d',
-      startedAt: `${day}T0${i}:00:00.000Z`,
-      endedAt: `${day}T0${i}:04:00.000Z`,
-      day,
-      plannedMinutes: 4,
-      actualMinutes: 4,
-      intensityTier: 'low',
-      intensityValue: moduleId === 'l1' ? 0.6 : 0,
-      intensityMetric: moduleId === 'l1' ? 'dominantContrastRatio' : 'offsetRemovedPercent',
-      gameDifficulty: 1,
-      viewingDistanceCm: 60,
-      postureNote: '',
-      status: 'completed',
-      preCheckId: null,
-      postCheckId: `c${i}`,
-      events: [],
-      metrics:
-        moduleId === 'l2' ? { alignments: 8, meanResidualDelta: 1.2 + i * 0.1 } : { timeInCageFraction: 0.7 },
-      notes: '',
-    });
-    checks.push({
-      id: `c${i}`,
-      sessionId: id,
-      phase: 'post',
-      at: `${day}T0${i}:05:00.000Z`,
-      diplopia: 0,
-      headache: 0,
-      nausea: 0,
-      eyestrain: i === 3 ? 1 : 0,
-      confusion: 0,
-      notes: '',
-    });
-  }
-  return {
-    app: 'eyes-training',
-    schemaVersion: 1,
-    exportedAt: new Date().toISOString(),
-    settings: {
-      activeCalibrationId: 'cal_e2e',
-      ergonomicsAcknowledgedAt: '2026-09-01T10:00:00.000Z',
-      clinicianAgreement: true,
-    },
-    calibrations: [
-      {
-        id: 'cal_e2e',
-        name: 'E2E profile',
-        createdAt: '2026-09-01T10:00:00.000Z',
-        updatedAt: '2026-09-01T10:00:00.000Z',
-        device: { ppi: 96, cardWidthPx: 323.5, dpr: 1, screenWidth: 1280, screenHeight: 720 },
-        viewingDistanceCm: 60,
-        channels: {
-          left: { channel: 'red', gain: 1, gamma: 1 },
-          right: { channel: 'cyan', gain: 1, gamma: 1 },
-        },
-        backgroundGray: 0,
-        monocular: { leftVisible: true, rightVisible: true },
-        worthFourDot: { result: 'left-suppression', dotsSeen: 3, notes: '' },
-        clinicalPrism: {
-          amountDelta: 7,
-          base: 'in',
-          range: 'distance',
-          measuredOn: '2026-08-01',
-          fusionWithPrism: 'fused',
-          notes: '',
-        },
-        offset: {
-          left: { dx: -158.7, dy: 0, rotationDeg: 0 },
-          right: { dx: 0, dy: 0, rotationDeg: 0 },
-          seededFromClinical: true,
-          splitMode: 'left',
-        },
-        contrastBalance: { dominantEye: 'right', balanceRatio: 0.6, trials: 6 },
-        postureNote: '',
-      },
-    ],
-    sessions,
-    symptomChecks: checks,
-    safetyEvents: [],
-  };
-}
-
+/** Six comfortable L1/L2 sessions on three days with clinician agreement: everything unlocked. */
 async function setup(page: Page) {
-  await page.goto('/');
-  for (const id of ['ack-1', 'ack-2', 'ack-3', 'ack-4']) await page.getByTestId(id).check();
-  await page.getByTestId('accept-disclaimer').click();
-  await page.goto('/#/settings');
-  await page.getByLabel('Import JSON (merge)').setInputFiles({
-    name: 'b.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(bundle())),
-  });
-  await expect(page.getByText(/Imported/)).toBeVisible();
+  await acceptDisclaimer(page);
+  await importBundle(
+    page,
+    bundle({ ...unlockedHistory(), settings: { clinicianAgreement: true }, balanceRatio: 0.6 }),
+  );
   await page.goto('/#/');
 }
 

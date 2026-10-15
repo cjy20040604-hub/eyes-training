@@ -1,28 +1,51 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from './en.json';
-import zhHans from './zh-Hans.json';
 
 export type Locale = 'en' | 'zh-Hans';
+
+/*
+ * English is bundled (it is also the fallback). Other languages are separate chunks that
+ * load only when used, so nobody downloads a translation they do not read. The service
+ * worker precaches them, so switching language works offline too.
+ */
+const lazyLocales: Record<Exclude<Locale, 'en'>, () => Promise<{ default: Record<string, unknown> }>> = {
+  'zh-Hans': () => import('./zh-Hans.json'),
+};
 
 export function detectLocale(): Locale {
   const nav = typeof navigator !== 'undefined' ? navigator.language.toLowerCase() : 'en';
   return nav.startsWith('zh') ? 'zh-Hans' : 'en';
 }
 
-export function initI18n(locale: Locale): typeof i18next {
+/** Make sure a language's strings are loaded. */
+export async function loadLocale(locale: Locale): Promise<void> {
+  if (locale === 'en' || i18next.hasResourceBundle(locale, 'translation')) return;
+  const strings = await lazyLocales[locale]();
+  i18next.addResourceBundle(locale, 'translation', strings.default, true, true);
+}
+
+/** Load a language if needed, then switch to it. */
+export async function changeLocale(locale: Locale): Promise<void> {
+  await loadLocale(locale);
+  if (i18next.language !== locale) await i18next.changeLanguage(locale);
+}
+
+/**
+ * Initialise i18next. English is available immediately; await the result before the first
+ * render so another language does not flash English text first.
+ */
+export function initI18n(locale: Locale): Promise<void> {
   if (!i18next.isInitialized) {
     void i18next.use(initReactI18next).init({
-      resources: { en: { translation: en }, 'zh-Hans': { translation: zhHans } },
-      lng: locale,
+      resources: { en: { translation: en } },
+      lng: 'en',
       fallbackLng: 'en',
       interpolation: { escapeValue: false },
       returnNull: false,
     });
-  } else if (i18next.language !== locale) {
-    void i18next.changeLanguage(locale);
   }
-  return i18next;
+  return changeLocale(locale);
 }
 
 export default i18next;

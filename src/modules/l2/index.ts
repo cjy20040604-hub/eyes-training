@@ -22,6 +22,7 @@ import type {
   ModuleInstance,
   ModuleRuntimeContext,
   Performance,
+  ProbePoint,
 } from '../types';
 
 /**
@@ -227,6 +228,13 @@ export class L2Instance implements ModuleInstance {
         left: scaleTransform(base.transforms.left, keep),
         right: scaleTransform(base.transforms.right, keep),
       },
+    };
+  }
+
+  probe(): Record<string, ProbePoint> {
+    return {
+      ring: { ...this.ring, eye: 'right' },
+      ball: { ...this.ball.pos, eye: 'left' },
     };
   }
 

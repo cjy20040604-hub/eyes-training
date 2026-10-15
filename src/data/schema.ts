@@ -240,6 +240,8 @@ export const exportBundleSchema = z.object({
   sessions: z.array(z.unknown()),
   symptomChecks: z.array(z.unknown()),
   safetyEvents: z.array(z.unknown()),
+  /** Only present when the user chose to include the local error log. Never imported. */
+  errorLogs: z.array(z.unknown()).optional(),
 });
 export type ExportBundle = z.infer<typeof exportBundleSchema>;
 

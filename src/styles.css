@@ -1343,3 +1343,29 @@ thead th {
     display: none;
   }
 }
+
+/* ---- Diagnostics: local error log ---- */
+.error-log {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 0.85rem;
+}
+.error-log li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  overflow-wrap: anywhere;
+}
+.error-log time {
+  color: var(--ink-muted);
+}
+
+/* Shown instead of the app when it is loaded inside another site's frame. */
+#frame-notice {
+  margin: 24px 16px;
+  font:
+    1rem/1.5 system-ui,
+    sans-serif;
+}

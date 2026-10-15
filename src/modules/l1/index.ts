@@ -19,6 +19,7 @@ import type {
   ModuleInstance,
   ModuleRuntimeContext,
   Performance,
+  ProbePoint,
 } from '../types';
 
 /**
@@ -220,6 +221,13 @@ export class L1Instance implements ModuleInstance {
     return {
       ...base,
       contrast: { ...base.contrast, [dominant]: this.ctx.intensityValue, [weak]: 1 },
+    };
+  }
+
+  probe(): Record<string, ProbePoint> {
+    return {
+      cage: { ...this.cage, eye: 'right' },
+      bird: { ...this.bird.pos, eye: 'left' },
     };
   }
 

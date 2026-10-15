@@ -465,7 +465,15 @@
     "importDone": "Imported {{sessions}} sessions and {{calibrations}} profiles ({{skipped}} invalid rows skipped).",
     "importFailed": "Import failed: {{error}}",
     "resetAll": "Delete all local data",
-    "resetConfirm": "This permanently deletes all local data. Sure?"
+    "resetConfirm": "This permanently deletes all local data. Sure?",
+    "diagnostics": {
+      "title": "Diagnostics",
+      "hint": "Errors the app ran into are kept here, on this device only, so a problem can be traced later. They contain no training results, symptom answers or anything you typed. Nothing is sent anywhere.",
+      "count": "{{count}} error(s) logged · app version {{version}}",
+      "refresh": "Refresh",
+      "clear": "Clear error log",
+      "includeInExport": "Include the error log in the backup file (for troubleshooting)"
+    }
   },
   "calibration": {
     "title": "Calibration wizard",
@@ -535,7 +543,6 @@
         "fusion": "Both eyes contribute and the images are combined. Good starting point.",
         "left-suppression": "Only the right eye's dots are seen; the left eye is suppressing. This is the expected starting point for you.",
         "right-suppression": "Only the left eye's dots are seen; the right eye is suppressing.",
-        "diplopia": "",
         "alternating": "Perception switches between the eyes.",
         "unknown": "Could not classify."
       },

@@ -5,15 +5,18 @@ import { downloadText, exportJson, importJson } from '../data/exportImport';
 import { useAllData } from '../data/hooks';
 import { useSettings } from '../data/settingsStore';
 import { RENDERER_IDS } from '../engine/renderer';
+import { changeLocale } from '../i18n';
 import { Banner, Button, Card, Field, Segmented } from '../ui';
+import { Diagnostics } from './Diagnostics';
 
 export function SettingsPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const settings = useSettings();
   const all = useAllData();
   const fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [includeErrorLog, setIncludeErrorLog] = useState(false);
 
   const onImport = async (file: File, mode: 'merge' | 'replace') => {
     try {
@@ -42,7 +45,7 @@ export function SettingsPage() {
             value={settings.locale}
             onChange={(l) => {
               settings.setLocale(l);
-              void i18n.changeLanguage(l);
+              void changeLocale(l);
             }}
             label={t('settings.language')}
             options={[
@@ -226,7 +229,7 @@ export function SettingsPage() {
             onClick={async () =>
               downloadText(
                 `eyes-training-backup-${new Date().toISOString().slice(0, 10)}.json`,
-                await exportJson(),
+                await exportJson({ includeErrorLog }),
               )
             }
           >
@@ -242,6 +245,15 @@ export function SettingsPage() {
           />
           <Button onClick={() => fileRef.current?.click()}>{t('settings.importMerge')}</Button>
         </div>
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={includeErrorLog}
+            onChange={(e) => setIncludeErrorLog(e.target.checked)}
+            data-testid="export-include-errors"
+          />
+          <span>{t('settings.diagnostics.includeInExport')}</span>
+        </label>
         <div className="row" style={{ marginTop: 12 }}>
           {!confirmReset ? (
             <Button variant="danger" onClick={() => setConfirmReset(true)}>
@@ -259,6 +271,7 @@ export function SettingsPage() {
                     db.sessions.clear(),
                     db.symptomChecks.clear(),
                     db.safetyEvents.clear(),
+                    db.errorLogs.clear(),
                   ]);
                   settings.resetAll();
                   setConfirmReset(false);
@@ -272,6 +285,8 @@ export function SettingsPage() {
           )}
         </div>
       </Card>
+
+      <Diagnostics />
     </div>
   );
 }

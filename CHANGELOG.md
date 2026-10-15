@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Versions follow SemVer; releases are git tags `vX.Y.Z`.
 
+## [0.2.1] — 2026-10-16
+
+### Added
+
+- Anti-framing guard (`public/frame-guard.js`): inside another site's frame the app stays hidden, never starts, and offers a link to open it directly. GitHub Pages cannot send a `frame-ancestors` header and browsers ignore it in a `<meta>` CSP, so it was removed from the meta tag.
+- Local error log (Settings → Diagnostics): uncaught errors, unhandled rejections and React render errors are kept on the device (message, trimmed stack, route, app version; no training data). It can be cleared, and is added to the backup file only when the user ticks the box.
+
+### Changed
+
+- Pages load on demand (`React.lazy`) and the Chinese strings load only when Chinese is used; vendor code is split into stable chunks. The app's own startup bundle went from 141 KB to 37 KB gzip. All chunks are still precached for offline use.
+- The training session lifecycle is now an explicit state machine (`src/safety/sessionMachine.ts`) with unit tests for its safety rules (STOP from every state, an unverifiable flash cannot be dismissed, a pause never hides a break or a flash warning). TrainingShell's views moved to `TrainingViews.tsx`; the calibration stimuli moved to `calibration/stimuli.ts`.
+- Fixed in passing: the metrics of a session that ran to time are captured before the stimulus closes.
+
+### Tests
+
+- End-to-end tests run against an e2e-mode build with a test hook that reports object positions, replacing pixel scanning in the three-day test; new rendering checks confirm each eye's image is drawn in its own colour channel at the calibrated offset; new tests for the frame guard, the error log, on-demand language loading and offline use of lazily loaded pages.
+- Component tests for every page (overview, report, history, settings, training screen with a stand-in canvas, video setup, charts, app routing); unit tests for session rules, the state machine, the error log, calibration stimuli and translation completeness.
+- Unit and component test coverage rose from 36% to 73% of statements, with a CI gate (stricter for safety rules and the stimulus engine).
+- CI checks formatting, that the production build has the frame guard and no test hooks, and runs smoke tests against the live site after each deploy.
+
 ## [0.2.0] — 2026-10-15 (Phase 2)
 
 ### Added

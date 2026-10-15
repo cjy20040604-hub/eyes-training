@@ -465,7 +465,15 @@
     "importDone": "已导入 {{sessions}} 条训练记录和 {{calibrations}} 个档案（跳过 {{skipped}} 条无效数据）。",
     "importFailed": "导入失败：{{error}}",
     "resetAll": "删除所有本地数据",
-    "resetConfirm": "这将永久删除所有本地数据。确定吗？"
+    "resetConfirm": "这将永久删除所有本地数据。确定吗？",
+    "diagnostics": {
+      "title": "诊断",
+      "hint": "应用遇到的错误只保存在本设备上，便于日后排查问题。其中不含训练结果、症状回答或您输入的任何内容，也不会发送到任何地方。",
+      "count": "已记录 {{count}} 条错误 · 应用版本 {{version}}",
+      "refresh": "刷新",
+      "clear": "清空错误日志",
+      "includeInExport": "备份文件中附带错误日志（用于排查问题）"
+    }
   },
   "calibration": {
     "title": "校准向导",
@@ -535,7 +543,6 @@
         "fusion": "双眼均参与且影像融合。良好的起点。",
         "left-suppression": "只看到右眼的点；左眼在抑制。这是您预期的起点。",
         "right-suppression": "只看到左眼的点；右眼在抑制。",
-        "diplopia": "",
         "alternating": "知觉在两眼之间切换。",
         "unknown": "无法分类。"
       },

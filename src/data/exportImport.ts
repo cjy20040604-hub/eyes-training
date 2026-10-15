@@ -26,7 +26,12 @@ function settingsData(): Settings {
   return settingsSchema.parse(data);
 }
 
-export async function buildExportBundle(): Promise<ExportBundle> {
+export interface ExportOptions {
+  /** Include the local error log (off unless the user ticks it). */
+  includeErrorLog?: boolean;
+}
+
+export async function buildExportBundle(options: ExportOptions = {}): Promise<ExportBundle> {
   const db = getDb();
   const [calibrations, sessions, symptomChecks, safetyEvents] = await Promise.all([
     db.calibrations.toArray(),
@@ -43,11 +48,12 @@ export async function buildExportBundle(): Promise<ExportBundle> {
     sessions,
     symptomChecks,
     safetyEvents,
+    ...(options.includeErrorLog ? { errorLogs: await db.errorLogs.orderBy('at').toArray() } : {}),
   };
 }
 
-export async function exportJson(): Promise<string> {
-  return JSON.stringify(await buildExportBundle(), null, 2);
+export async function exportJson(options: ExportOptions = {}): Promise<string> {
+  return JSON.stringify(await buildExportBundle(options), null, 2);
 }
 
 export interface ImportResult {

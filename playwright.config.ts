@@ -10,8 +10,10 @@ export default defineConfig({
     baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',
   },
+  // Tests run against an e2e-mode build (with test hooks, see TrainingCanvas.tsx) in its own
+  // folder, so it can never be confused with the production build in dist/.
   webServer: {
-    command: 'npm run preview -- --port 4173 --strictPort',
+    command: 'npm run build:e2e && npx vite preview --outDir dist-e2e --port 4173 --strictPort',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

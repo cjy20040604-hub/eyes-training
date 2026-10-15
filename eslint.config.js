@@ -5,10 +5,22 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist', 'dev-dist', 'node_modules', 'playwright-report', 'test-results', 'coverage'] },
+  {
+    ignores: [
+      'dist',
+      'dist-e2e',
+      'dev-dist',
+      'node_modules',
+      'playwright-report',
+      'test-results',
+      'coverage',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { files: ['**/*.mjs', '**/*.js'], languageOptions: { globals: { ...globals.node } } },
+  // Plain scripts served to the browser as-is (not bundled).
+  { files: ['public/**/*.js'], languageOptions: { sourceType: 'script', globals: { ...globals.browser } } },
   {
     files: ['**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks, 'jsx-a11y': jsxA11y },

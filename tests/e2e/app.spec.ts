@@ -1,77 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-
-const ORIGIN = 'http://localhost:4173';
-
-function today(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function calibration() {
-  return {
-    id: 'cal_e2e',
-    name: 'E2E profile',
-    createdAt: '2026-09-01T10:00:00.000Z',
-    updatedAt: '2026-09-01T10:00:00.000Z',
-    device: { ppi: 96, cardWidthPx: 323.5, dpr: 1, screenWidth: 1280, screenHeight: 720 },
-    viewingDistanceCm: 60,
-    channels: { left: { channel: 'red', gain: 1, gamma: 1 }, right: { channel: 'cyan', gain: 1, gamma: 1 } },
-    backgroundGray: 0,
-    monocular: { leftVisible: true, rightVisible: true },
-    worthFourDot: { result: 'left-suppression', dotsSeen: 3, notes: '' },
-    clinicalPrism: {
-      amountDelta: 7,
-      base: 'in',
-      range: 'distance',
-      measuredOn: '2026-08-01',
-      fusionWithPrism: 'fused',
-      notes: '',
-    },
-    offset: {
-      left: { dx: -158.7, dy: 0, rotationDeg: 0 },
-      right: { dx: 0, dy: 0, rotationDeg: 0 },
-      seededFromClinical: true,
-      splitMode: 'left',
-    },
-    contrastBalance: { dominantEye: 'right', balanceRatio: 0.5, trials: 6 },
-    postureNote: '',
-  };
-}
-
-function bundle(extra: { sessions?: unknown[]; settings?: Record<string, unknown> } = {}) {
-  return {
-    app: 'eyes-training',
-    schemaVersion: 1,
-    exportedAt: new Date().toISOString(),
-    settings: {
-      activeCalibrationId: 'cal_e2e',
-      ergonomicsAcknowledgedAt: '2026-09-01T10:00:00.000Z',
-      ...(extra.settings ?? {}),
-    },
-    calibrations: [calibration()],
-    sessions: extra.sessions ?? [],
-    symptomChecks: [],
-    safetyEvents: [],
-  };
-}
-
-async function acceptDisclaimer(page: Page) {
-  await page.goto('/');
-  await expect(page.getByTestId('accept-disclaimer')).toBeDisabled();
-  for (const id of ['ack-1', 'ack-2', 'ack-3', 'ack-4']) await page.getByTestId(id).check();
-  await page.getByTestId('accept-disclaimer').click();
-  await expect(page.getByRole('heading', { name: "Today's training" })).toBeVisible();
-}
-
-async function importBundle(page: Page, data: unknown) {
-  await page.goto('/#/settings');
-  await page.getByLabel('Import JSON (merge)').setInputFiles({
-    name: 'bundle.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(data)),
-  });
-  await expect(page.getByText(/Imported/)).toBeVisible();
-}
+import { expect, test } from '@playwright/test';
+import { ORIGIN, acceptDisclaimer, bundle, dayKey, importBundle } from './helpers';
 
 test('first run enforces the disclaimer and makes no non-local network requests', async ({ page }) => {
   const external: string[] = [];
@@ -129,7 +57,7 @@ test('a red-flag report disables training until acknowledged', async ({ page }) 
 
 test('the global daily cap blocks further training across modules', async ({ page }) => {
   await acceptDisclaimer(page);
-  const day = today();
+  const day = dayKey();
   const sessions = ['l1', 'l2', 'l1'].map((moduleId, i) => ({
     id: `ses_cap_${i}`,
     moduleId,

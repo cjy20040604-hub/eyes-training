@@ -14,9 +14,14 @@ import {
   type RendererId,
   type StereoRenderer,
 } from '../engine/renderer';
+import { transformToMatrix } from '../engine/affine';
 import { TransitionGuard } from '../engine/transitionGuard';
 import { degreesToPx, type ScreenGeometry } from '../engine/units';
 import type { HudState, ModuleConfig, ModuleDefinition, ModuleInstance } from '../modules/types';
+
+/** Page coordinates of a module's key objects, as exposed to end-to-end tests. */
+export type ProbeSnapshot = Record<string, { x: number; y: number; eye: 'left' | 'right' }>;
+type ProbeWindow = Window & { __bvProbe?: () => ProbeSnapshot };
 
 /** Without any input for this long, an input-driven module pauses (idle time is not training). */
 export const IDLE_PAUSE_MS = 60_000;
@@ -295,8 +300,29 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       }, 50);
     }
 
+    // End-to-end test builds only (vite --mode e2e; removed from production builds): report
+    // where the module's objects appear on the page, through the same per-eye transform the
+    // anaglyph renderers use, so tests can aim without scanning pixels.
+    if (import.meta.env.MODE === 'e2e') {
+      (window as ProbeWindow).__bvProbe = () => {
+        const rect = canvas.getBoundingClientRect();
+        const opts = module.renderOverrides(base);
+        const out: ProbeSnapshot = {};
+        for (const [name, pt] of Object.entries(module.probe?.() ?? {})) {
+          const m = transformToMatrix(opts.transforms[pt.eye], width / 2, height / 2);
+          out[name] = {
+            eye: pt.eye,
+            x: rect.left + m[0] * pt.x + m[2] * pt.y + m[4],
+            y: rect.top + m[1] * pt.x + m[3] * pt.y + m[5],
+          };
+        }
+        return out;
+      };
+    }
+
     loop.start();
     return () => {
+      if (import.meta.env.MODE === 'e2e') delete (window as ProbeWindow).__bvProbe;
       loop.dispose();
       ro.disconnect();
       if (gpTimer !== null) clearInterval(gpTimer);

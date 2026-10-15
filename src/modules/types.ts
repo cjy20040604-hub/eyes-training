@@ -71,6 +71,13 @@ export interface ModuleRuntimeContext {
   random: () => number;
 }
 
+/** A named object on screen, in the eye layer's CSS px (before that eye's prism offset). */
+export interface ProbePoint {
+  x: number;
+  y: number;
+  eye: 'left' | 'right';
+}
+
 export interface ModuleInstance {
   start(nowMs: number): void;
   update(dtMs: number, nowMs: number): void;
@@ -83,6 +90,11 @@ export interface ModuleInstance {
   metrics(): Record<string, number>;
   /** Called when breaks, overlays or STOP pause/resume the session (e.g. to pause a video). */
   setPaused?(paused: boolean): void;
+  /**
+   * Test hook: positions of the module's key objects. Only read by end-to-end test builds
+   * (vite --mode e2e), so tests can aim at objects without scanning rendered pixels.
+   */
+  probe?(): Record<string, ProbePoint>;
   stop(): void;
 }
 

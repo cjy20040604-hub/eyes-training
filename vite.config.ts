@@ -2,7 +2,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string;
+};
 
 // Base path for static hosting under a sub-path (GitHub Pages). Hash routing means
 // only asset URLs depend on this.
@@ -10,6 +15,7 @@ const base = process.env.VITE_BASE ?? '/';
 
 export default defineConfig({
   base,
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [
     react(),
     VitePWA({
@@ -47,10 +53,17 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          data: ['dexie', 'zod', 'zustand'],
-          i18n: ['i18next', 'react-i18next'],
+        // Vendor code in stable chunks that stay cached across app updates. A function (not
+        // a name list) so sub-path imports such as react-dom/client land in the right chunk.
+        // Module ids use forward slashes on every platform.
+        manualChunks(id) {
+          const pkg = /\/node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(id)?.[1];
+          if (!pkg) return undefined;
+          if (['react', 'react-dom', 'scheduler', 'react-router', 'react-router-dom'].includes(pkg))
+            return 'react';
+          if (['dexie', 'zod', 'zustand'].includes(pkg)) return 'data';
+          if (['i18next', 'react-i18next'].includes(pkg)) return 'i18n';
+          return undefined;
         },
       },
     },
@@ -61,5 +74,28 @@ export default defineConfig({
     setupFiles: ['tests/setup.ts'],
     include: ['tests/unit/**/*.test.ts', 'tests/component/**/*.test.tsx', 'src/**/*.test.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**'],
+    // `npm run test:coverage` (CI) fails if coverage drops below these floors. Safety logic
+    // and the stimulus engine carry stricter floors than UI code; the canvas-driven parts
+    // (TrainingCanvas, WebGL, the wizard's drawing) are covered by the Playwright suite.
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/**/types.ts'],
+      reporter: ['text-summary', 'html', 'json-summary'],
+      thresholds: {
+        statements: 68,
+        branches: 80,
+        functions: 64,
+        lines: 68,
+        'src/safety/{caps,gating,symptomRules,sessionMachine,session}.ts': {
+          statements: 95,
+          branches: 80,
+          functions: 95,
+          lines: 95,
+        },
+        'src/engine/*.ts': { statements: 90, branches: 80, functions: 85, lines: 90 },
+        'src/data/**': { statements: 80, branches: 75, functions: 65, lines: 80 },
+      },
+    },
   },
 });

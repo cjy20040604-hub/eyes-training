@@ -1,20 +1,42 @@
-import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Suspense, lazy, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HashRouter, NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { CalibrationWizard } from './calibration/Wizard';
-import { History } from './dashboard/History';
-import { ModuleView } from './dashboard/ModuleView';
 import { Overview } from './dashboard/Overview';
 import { RedFlagPage } from './dashboard/RedFlagPage';
-import { Report } from './dashboard/Report';
-import { SettingsPage } from './dashboard/SettingsPage';
 import { ensureSchemaVersion } from './data/db';
+import { logError } from './data/errorLog';
 import { disclaimerAccepted, useSettings } from './data/settingsStore';
 import { DisclaimerScreen } from './safety/DisclaimerScreen';
 import { recoverInProgressSessions } from './safety/session';
-import { TrainingShell } from './safety/TrainingShell';
 import { Banner, Button, Footer } from './ui';
+
+/*
+ * Pages other than the overview load on demand, so the first screen only downloads what it
+ * shows. The service worker still precaches every chunk, so all pages work offline.
+ * The red-flag page stays in the main bundle: safety guidance must never wait on a download.
+ */
+const CalibrationWizard = lazy(() =>
+  import('./calibration/Wizard').then((m) => ({ default: m.CalibrationWizard })),
+);
+const History = lazy(() => import('./dashboard/History').then((m) => ({ default: m.History })));
+const ModuleView = lazy(() => import('./dashboard/ModuleView').then((m) => ({ default: m.ModuleView })));
+const Report = lazy(() => import('./dashboard/Report').then((m) => ({ default: m.Report })));
+const SettingsPage = lazy(() =>
+  import('./dashboard/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+);
+const TrainingShell = lazy(() =>
+  import('./safety/TrainingShell').then((m) => ({ default: m.TrainingShell })),
+);
+
+function PageLoading() {
+  const { t } = useTranslation();
+  return (
+    <p role="status" data-testid="page-loading">
+      {t('common.loading')}
+    </p>
+  );
+}
 
 /** Two lens outlines; the overlap where both eyes' images meet is filled. Ink only. */
 function FusionMark() {
@@ -48,6 +70,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
   override componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Unhandled UI error', error, info.componentStack);
+    void logError('react', error, info.componentStack ?? '');
   }
   override render() {
     if (this.state.error) return <CrashScreen error={this.state.error} />;
@@ -169,17 +192,19 @@ export default function App() {
         <ScrollToTop />
         <Layout>
           <Gate>
-            <Routes>
-              <Route path="/" element={<Overview />} />
-              <Route path="/calibration" element={<CalibrationWizard />} />
-              <Route path="/module/:moduleId" element={<ModuleView />} />
-              <Route path="/train/:moduleId" element={<TrainingRoute />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/report" element={<Report />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/red-flag" element={<RedFlagPage />} />
-              <Route path="*" element={<Overview />} />
-            </Routes>
+            <Suspense fallback={<PageLoading />}>
+              <Routes>
+                <Route path="/" element={<Overview />} />
+                <Route path="/calibration" element={<CalibrationWizard />} />
+                <Route path="/module/:moduleId" element={<ModuleView />} />
+                <Route path="/train/:moduleId" element={<TrainingRoute />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/report" element={<Report />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/red-flag" element={<RedFlagPage />} />
+                <Route path="*" element={<Overview />} />
+              </Routes>
+            </Suspense>
           </Gate>
         </Layout>
       </HashRouter>

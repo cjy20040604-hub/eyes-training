@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getDb } from '../data/db';
@@ -29,9 +29,19 @@ import {
 } from '../engine/units';
 import { ErgonomicsCard } from '../safety/ErgonomicsCard';
 import { Banner, Button, Card, Field, Segmented } from '../ui';
-import { CalibCanvas, type CalibDraw } from './CalibCanvas';
+import { CalibCanvas } from './CalibCanvas';
 import { PpiCardCalibration } from './PpiCardCalibration';
 import { PrismInputForm, defaultClinicalPrism } from './PrismInputForm';
+import {
+  contrastStimulus,
+  ghostStimulus,
+  glassesStimulus,
+  monoLeftStimulus,
+  monoRightStimulus,
+  offsetStimulus,
+  worthFourDotResult,
+  worthStimulus,
+} from './stimuli';
 
 const STEPS = ['safety', 'screen', 'glasses', 'monocular', 'worth', 'offset', 'contrast', 'review'] as const;
 
@@ -74,8 +84,6 @@ export function CalibrationWizard() {
   const [postureNote, setPostureNote] = useState('');
 
   const geometry: ScreenGeometry | null = ppi ? { distanceM: distanceCm / 100, ppi: ppi.ppi } : null;
-  const redEye: 'left' | 'right' = channels.left.channel === 'red' ? 'left' : 'right';
-  const cyanEye: 'left' | 'right' = redEye === 'left' ? 'right' : 'left';
 
   const baseOptions = useMemo<RenderOptions>(
     () => ({
@@ -94,109 +102,9 @@ export function CalibrationWizard() {
     [baseOptions],
   );
 
-  // ---- Draw callbacks ----
-  const drawGlasses = useCallback<CalibDraw>(
-    (l, r, w, h) => {
-      // Square A drawn in the RED channel layer, square B in the CYAN channel layer.
-      const redLayer = channels.left.channel === 'red' ? l : r;
-      const cyanLayer = redLayer === l ? r : l;
-      redLayer.fillStyle = '#fff';
-      redLayer.fillRect(w * 0.15, h * 0.25, w * 0.3, h * 0.5);
-      redLayer.fillStyle = '#000';
-      redLayer.font = `${Math.round(h * 0.3)}px sans-serif`;
-      redLayer.textAlign = 'center';
-      redLayer.textBaseline = 'middle';
-      redLayer.fillText('A', w * 0.3, h * 0.5);
-      cyanLayer.fillStyle = '#fff';
-      cyanLayer.fillRect(w * 0.55, h * 0.25, w * 0.3, h * 0.5);
-      cyanLayer.fillStyle = '#000';
-      cyanLayer.font = `${Math.round(h * 0.3)}px sans-serif`;
-      cyanLayer.textAlign = 'center';
-      cyanLayer.textBaseline = 'middle';
-      cyanLayer.fillText('B', w * 0.7, h * 0.5);
-    },
-    [channels],
-  );
-
-  const drawGhost = useCallback<CalibDraw>((l, _r, w, h) => {
-    l.fillStyle = '#fff';
-    l.beginPath();
-    l.arc(w * 0.5, h * 0.5, h * 0.2, 0, Math.PI * 2);
-    l.fill();
-  }, []);
-
-  const drawMonoLeft = useCallback<CalibDraw>((l, _r, w, h) => {
-    l.fillStyle = '#fff';
-    l.beginPath();
-    l.moveTo(w * 0.5, h * 0.2);
-    l.lineTo(w * 0.7, h * 0.8);
-    l.lineTo(w * 0.3, h * 0.8);
-    l.closePath();
-    l.fill();
-  }, []);
-  const drawMonoRight = useCallback<CalibDraw>((_l, r, w, h) => {
-    r.fillStyle = '#fff';
-    r.fillRect(w * 0.35, h * 0.25, w * 0.3, h * 0.5);
-  }, []);
-
-  const drawWorth = useCallback<CalibDraw>(
-    (l, r, w, h) => {
-      const redLayer = channels.left.channel === 'red' ? l : r;
-      const cyanLayer = redLayer === l ? r : l;
-      const cx = w / 2;
-      const cy = h / 2;
-      const rad = h * 0.07;
-      const dot = (c: CanvasRenderingContext2D, x: number, y: number) => {
-        c.fillStyle = '#fff';
-        c.beginPath();
-        c.arc(x, y, rad, 0, Math.PI * 2);
-        c.fill();
-      };
-      dot(redLayer, cx, cy - h * 0.25); // top: red eye only
-      dot(cyanLayer, cx - w * 0.15, cy); // left: cyan eye only
-      dot(cyanLayer, cx + w * 0.15, cy); // right: cyan eye only
-      dot(l, cx, cy + h * 0.25); // bottom: both eyes
-      dot(r, cx, cy + h * 0.25);
-    },
-    [channels],
-  );
-
-  const drawOffset = useCallback<CalibDraw>((l, r, w, h) => {
-    const cx = w / 2;
-    const cy = h / 2;
-    // Both eyes: fusion frame.
-    for (const c of [l, r]) {
-      c.strokeStyle = '#888';
-      c.lineWidth = 3;
-      c.strokeRect(w * 0.1, h * 0.1, w * 0.8, h * 0.8);
-    }
-    // Left eye: cross. Right eye: ring.
-    l.strokeStyle = '#fff';
-    l.lineWidth = 4;
-    l.beginPath();
-    l.moveTo(cx - h * 0.12, cy);
-    l.lineTo(cx + h * 0.12, cy);
-    l.moveTo(cx, cy - h * 0.12);
-    l.lineTo(cx, cy + h * 0.12);
-    l.stroke();
-    r.strokeStyle = '#fff';
-    r.lineWidth = 4;
-    r.beginPath();
-    r.arc(cx, cy, h * 0.08, 0, Math.PI * 2);
-    r.stroke();
-  }, []);
-
-  const drawContrast = useCallback<CalibDraw>((l, r, w, h) => {
-    l.fillStyle = '#fff';
-    l.fillRect(w * 0.3, h * 0.2, w * 0.12, h * 0.6);
-    r.fillStyle = '#fff';
-    r.fillRect(w * 0.58, h * 0.2, w * 0.12, h * 0.6);
-    for (const c of [l, r]) {
-      c.strokeStyle = '#777';
-      c.lineWidth = 2;
-      c.strokeRect(w * 0.2, h * 0.1, w * 0.6, h * 0.8);
-    }
-  }, []);
+  // ---- Stimuli (pure drawing functions in stimuli.ts) ----
+  const drawGlasses = useMemo(() => glassesStimulus(channels), [channels]);
+  const drawWorth = useMemo(() => worthStimulus(channels), [channels]);
 
   const contrastOptions = useMemo<RenderOptions>(
     () => ({ ...baseOptions, contrast: { left: 1, right: stair.value } }),
@@ -204,14 +112,7 @@ export function CalibrationWizard() {
   );
 
   // ---- Derived ----
-  const w4dResult: WorthFourDotResult = useMemo(() => {
-    if (alternating) return 'alternating';
-    if (dotsSeen === 4) return 'fusion';
-    if (dotsSeen === 5) return 'diplopia';
-    if (dotsSeen === 2) return cyanEye === 'left' ? 'left-suppression' : 'right-suppression';
-    if (dotsSeen === 3) return redEye === 'left' ? 'left-suppression' : 'right-suppression';
-    return 'unknown';
-  }, [dotsSeen, alternating, redEye, cyanEye]);
+  const w4dResult: WorthFourDotResult = worthFourDotResult(dotsSeen, alternating, channels);
 
   const seedFromClinical = () => {
     if (!geometry) return;
@@ -405,7 +306,7 @@ export function CalibrationWizard() {
           ) : null}
           <h3>{t('calibration.ghost.title')}</h3>
           <p>{t('calibration.ghost.intro')}</p>
-          <CalibCanvas options={identityOptions} draw={drawGhost} />
+          <CalibCanvas options={identityOptions} draw={ghostStimulus} />
           <Field
             label={t('calibration.ghost.gainLeft', {
               channel: t(`calibration.glasses.${channels.left.channel}`),
@@ -463,7 +364,7 @@ export function CalibrationWizard() {
       {current === 'monocular' ? (
         <Card title={t('calibration.steps.monocular')}>
           <p>{t('calibration.mono.introLeft')}</p>
-          <CalibCanvas options={identityOptions} draw={drawMonoLeft} />
+          <CalibCanvas options={identityOptions} draw={monoLeftStimulus} />
           <Segmented
             value={monoLeft === null ? ('' as 'yes') : monoLeft ? 'yes' : 'no'}
             onChange={(v) => setMonoLeft(v === 'yes')}
@@ -474,7 +375,7 @@ export function CalibrationWizard() {
             ]}
           />
           <p style={{ marginTop: 16 }}>{t('calibration.mono.introRight')}</p>
-          <CalibCanvas options={identityOptions} draw={drawMonoRight} />
+          <CalibCanvas options={identityOptions} draw={monoRightStimulus} />
           <Segmented
             value={monoRight === null ? ('' as 'yes') : monoRight ? 'yes' : 'no'}
             onChange={(v) => setMonoRight(v === 'yes')}
@@ -547,7 +448,7 @@ export function CalibrationWizard() {
           <h3 style={{ marginTop: 16 }}>{t('calibration.offset.fineTitle')}</h3>
           <p>{t('calibration.offset.fineIntro')}</p>
           <p className="hint">{t('calibration.offset.keyboardHint')}</p>
-          <CalibCanvas options={baseOptions} draw={drawOffset} testId="offset-canvas" />
+          <CalibCanvas options={baseOptions} draw={offsetStimulus} testId="offset-canvas" />
           <div className="row">
             <Segmented
               value={nudge}
@@ -596,7 +497,7 @@ export function CalibrationWizard() {
       {current === 'contrast' ? (
         <Card title={t('calibration.steps.contrast')}>
           <p>{t('calibration.contrast.intro')}</p>
-          <CalibCanvas options={contrastOptions} draw={drawContrast} testId="contrast-canvas" />
+          <CalibCanvas options={contrastOptions} draw={contrastStimulus} testId="contrast-canvas" />
           <p>
             {t('calibration.contrast.current', {
               value: Math.round(stair.value * 100),

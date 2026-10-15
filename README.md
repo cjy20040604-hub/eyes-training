@@ -91,26 +91,35 @@ Then open http://localhost:5173 . Run the commands inside the project folder.
 然后打开 http://localhost:5173 。以上命令需要在项目文件夹内运行。
 
 ```bash
-npm run lint && npm run typecheck && npm test && npm run build
+npm run lint && npm run typecheck && npm run test:coverage && npm run build
 ```
 
-End-to-end tests (build first, Playwright starts the preview server):
+`test:coverage` runs the unit and component tests and fails if coverage drops below the floors set in `vite.config.ts` (stricter for the safety rules and the stimulus engine).
 
-端到端测试（需先构建，Playwright 会自动启动预览服务器）：
+`test:coverage` 运行单元测试和组件测试；覆盖率低于 `vite.config.ts` 中设定的下限时会失败（安全规则和刺激引擎的下限更严格）。
+
+End-to-end tests. Playwright builds a test copy (`--mode e2e`, in `dist-e2e/`) that can report where training objects are on screen, so tests aim without scanning pixels. The production build never contains this hook; CI checks that.
+
+端到端测试。Playwright 会构建一份测试版（`--mode e2e`，输出到 `dist-e2e/`），它能报告训练物体在屏幕上的位置，测试据此点击而不必扫描像素。正式版绝不包含这个接口，CI 会检查。
 
 ```bash
 npx playwright install chromium
 npm run test:e2e
 ```
 
+After every deploy, CI also runs smoke tests against the live site (`playwright.live.config.ts`).
+
+每次部署后，CI 还会对线上网站运行冒烟测试（`playwright.live.config.ts`）。
+
 ## Deploy · 部署
 
 Static hosting only. Set `VITE_BASE=/<repo>/` for GitHub Pages sub-paths (see
 `.github/workflows/ci.yml`). Netlify / Cloudflare Pages pick up `public/_headers` for the
-CSP; GitHub Pages relies on the `<meta http-equiv>` CSP in `index.html`. HTTPS is required
-for the service worker.
+CSP; GitHub Pages relies on the `<meta http-equiv>` CSP in `index.html`. Because a `<meta>`
+CSP cannot forbid framing, `public/frame-guard.js` keeps the app hidden and inactive when it
+is embedded in another site (clickjacking defence). HTTPS is required for the service worker.
 
-只需静态托管。部署到 GitHub Pages 子路径时设置 `VITE_BASE=/<仓库名>/`（见 `.github/workflows/ci.yml`）。Netlify / Cloudflare Pages 会读取 `public/_headers` 中的内容安全策略；GitHub Pages 使用 `index.html` 里的 `<meta http-equiv>` 内容安全策略。Service Worker 需要 HTTPS。
+只需静态托管。部署到 GitHub Pages 子路径时设置 `VITE_BASE=/<仓库名>/`（见 `.github/workflows/ci.yml`）。Netlify / Cloudflare Pages 会读取 `public/_headers` 中的内容安全策略；GitHub Pages 使用 `index.html` 里的 `<meta http-equiv>` 内容安全策略。由于 `<meta>` 形式的策略无法禁止被嵌入，`public/frame-guard.js` 会在应用被其他网站嵌入时保持隐藏、不启动（防点击劫持）。Service Worker 需要 HTTPS。
 
 ## Privacy · 隐私
 

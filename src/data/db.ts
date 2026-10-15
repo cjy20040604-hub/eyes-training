@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie';
+import type { ErrorLogEntry } from './errorLog';
 import type { CalibrationProfile, SafetyEvent, SessionRecord, SymptomCheck } from './schema';
 import { SCHEMA_VERSION } from './schema';
 
@@ -17,6 +18,7 @@ export class AppDatabase extends Dexie {
   symptomChecks!: Table<SymptomCheck, string>;
   safetyEvents!: Table<SafetyEvent, string>;
   meta!: Table<MetaRow, string>;
+  errorLogs!: Table<ErrorLogEntry, string>;
 
   constructor(name = 'eyes-training') {
     super(name);
@@ -27,6 +29,8 @@ export class AppDatabase extends Dexie {
       safetyEvents: 'id, type, at',
       meta: 'key',
     });
+    // v2: local error log (see errorLog.ts). Additive, no data migration needed.
+    this.version(2).stores({ errorLogs: 'id, at' });
   }
 }
 

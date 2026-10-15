@@ -81,6 +81,20 @@ if (!('matchMedia' in window)) {
   });
 }
 
+// jsdom does not implement scrolling.
+window.scrollTo = noop as typeof window.scrollTo;
+
+// jsdom has no ResizeObserver (used by the charts to measure their width).
+if (!('ResizeObserver' in window)) {
+  class ResizeObserverStub {
+    observe = noop;
+    unobserve = noop;
+    disconnect = noop;
+  }
+  Object.defineProperty(window, 'ResizeObserver', { writable: true, value: ResizeObserverStub });
+  Object.defineProperty(globalThis, 'ResizeObserver', { writable: true, value: ResizeObserverStub });
+}
+
 afterEach(() => {
   cleanup();
   localStorage.clear();

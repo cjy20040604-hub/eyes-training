@@ -7,6 +7,11 @@
   accounts, no analytics, no crash reporting and no third-party scripts. A strict Content
   Security Policy (`index.html`, `public/_headers`) blocks anything else, and an end-to-end
   test asserts that no non-local request happens.
+- **Local error log.** If the app hits an error, it notes the error message, a shortened
+  technical trace, the in-app page (path only) and the app version in IndexedDB, at most
+  200 entries. No training results, symptom answers or text you typed. It is never sent
+  anywhere; you can view and clear it in Settings → Diagnostics, and it goes into a backup
+  file only if you tick "Include the error log".
 - **Optional remote video URLs** (Phase 2) are the single exception: if _you_ paste a video
   URL, your browser fetches that video directly. Nothing about you is sent besides the
   normal HTTP request for the file.

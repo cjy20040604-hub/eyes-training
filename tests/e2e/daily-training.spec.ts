@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
+import { probe } from './helpers';
 
 /**
  * Plays the real app over three simulated days, black-box:
  *  - runs the calibration wizard through the UI (including arrow-key nudging);
- *  - each day plays L1 "Both Eyes On" and L2 "Line Them Up" to completion by locating the
- *    cage / ring on the rendered canvas and clicking it, pressing Space for chicks;
+ *  - each day plays L1 "Both Eyes On" and L2 "Line Them Up" to completion by clicking the
+ *    cage / ring (positions come from the e2e build's test hook), pressing Space for chicks;
  *  - checks scores rise, sessions complete, difficulty progresses day to day, and the
  *    L3-L5 gate opens after 6 clean sessions on 3 days.
  * Time is driven by Playwright's fake clock, so a 2-minute session runs in seconds.
@@ -62,38 +63,17 @@ async function setShortSessions(page: Page) {
   await page.goto('/#/');
 }
 
-/** Centroid (CSS px, page coordinates) of the brightest cyan-only pixels: the right-eye target. */
-async function locateTarget(page: Page): Promise<{ x: number; y: number } | null> {
-  return page.evaluate(() => {
-    const c = document.querySelector<HTMLCanvasElement>('[data-testid=training-canvas]');
-    if (!c) return null;
-    const ctx = c.getContext('2d');
-    if (!ctx) return null;
-    const { width, height } = c;
-    const d = ctx.getImageData(0, 0, width, height).data;
-    let maxG = 0;
-    for (let i = 0; i < d.length; i += 4) if (d[i]! < 40 && d[i + 1]! > maxG) maxG = d[i + 1]!;
-    if (maxG < 60) return null;
-    const thr = maxG * 0.8; // the shared frame is drawn at half intensity, so it is excluded
-    let sx = 0;
-    let sy = 0;
-    let n = 0;
-    for (let y = 0; y < height; y += 3) {
-      for (let x = 0; x < width; x += 3) {
-        const i = (y * width + x) * 4;
-        if (d[i]! < 40 && d[i + 1]! >= thr && d[i + 2]! >= thr) {
-          sx += x;
-          sy += y;
-          n++;
-        }
-      }
-    }
-    if (n === 0) return null;
-    const r = c.getBoundingClientRect();
-    const sxCss = r.width / width;
-    const syCss = r.height / height;
-    return { x: r.left + (sx / n) * sxCss, y: r.top + (sy / n) * syCss };
-  });
+/**
+ * Page position of a module object (e.g. the L1 cage, the L2 ring), from the e2e test hook.
+ * Lets the fake clock run in small steps until the first frame has been drawn.
+ */
+async function waitForPoint(page: Page, name: string): Promise<{ x: number; y: number }> {
+  for (let i = 0; i < 40; i++) {
+    const p = (await probe(page))?.[name];
+    if (p) return p;
+    await page.clock.runFor(100);
+  }
+  throw new Error(`no "${name}" on screen`);
 }
 
 async function score(page: Page): Promise<number> {
@@ -153,7 +133,7 @@ async function playL1(page: Page) {
   let chicks = 0;
   await playUntilEnd(page, async (t, active) => {
     if (active || t % 1000 === 0) {
-      const cage = await locateTarget(page);
+      const cage = (await probe(page))?.['cage'];
       if (cage) await page.mouse.click(cage.x, cage.y);
     }
     const prompt = (await page.getByTestId('hud-prompt').textContent()) ?? '';
@@ -169,14 +149,8 @@ async function playL1(page: Page) {
 async function playL2(page: Page) {
   await startSession(page, 'l2');
   // Bug regression: a single click on the ring must move the ball and score.
-  // The first frames may not be drawn yet on a slow machine, so let time run until the ring shows.
-  let ring = await locateTarget(page);
-  for (let i = 0; !ring && i < 20; i++) {
-    await page.clock.runFor(100);
-    ring = await locateTarget(page);
-  }
-  expect(ring).not.toBeNull();
-  await page.mouse.click(ring!.x, ring!.y);
+  const ring = await waitForPoint(page, 'ring');
+  await page.mouse.click(ring.x, ring.y);
   await page.clock.runFor(2500);
   // At least one round scored (the ring may land near the ball again by chance).
   expect(await score(page)).toBeGreaterThanOrEqual(10);
@@ -191,7 +165,7 @@ async function playL2(page: Page) {
     const prompt = (await page.getByTestId('hud-prompt').textContent()) ?? '';
     // Leave the ball alone while the ring glides or while the hold arc is filling.
     if (prompt.includes('ring is moving') || prompt.includes('Hold it')) return;
-    const target = await locateTarget(page);
+    const target = (await probe(page))?.['ring'];
     if (target) await page.mouse.click(target.x, target.y);
   });
   return finishWithCleanCheck(page);

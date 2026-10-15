@@ -7,16 +7,25 @@
       Strict Content Security Policy: everything is same-origin. No third-party scripts,
       styles, fonts, or connections. media-src allows https: only so an OPTIONAL user-entered
       CORS video URL can play; scripts and data still cannot leave the device.
+      frame-ancestors is not listed: browsers ignore it in a <meta> CSP. public/_headers sends
+      it where the host supports headers; frame-guard.js below covers hosts that do not.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: https:; worker-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: https:; worker-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'"
     />
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" content="#111318" />
     <link rel="icon" href="./icons/icon-192.png" />
     <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <title>Binocular Vision Explorer</title>
+    <!-- Anti-framing: the body stays hidden until frame-guard.js confirms this is the top window. -->
+    <style>
+      html:not([data-frame-ok]) body > :not(#frame-notice) {
+        display: none !important;
+      }
+    </style>
+    <script src="./frame-guard.js"></script>
   </head>
   <body>
     <div id="root"></div>

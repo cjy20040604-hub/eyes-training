@@ -9,6 +9,7 @@ import type {
   ModuleInstance,
   ModuleRuntimeContext,
   Performance,
+  ProbePoint,
 } from '../types';
 
 /**
@@ -213,6 +214,16 @@ export class L3Instance implements ModuleInstance {
       ...base,
       contrast: { ...base.contrast, [dominant]: this.ctx.intensityValue, [weak]: 1 },
     };
+  }
+
+  probe(): Record<string, ProbePoint> {
+    const out: Record<string, ProbePoint> = { basket: { ...this.basket.pos, eye: 'right' } };
+    // The lowest star still falling: the one to catch next.
+    const next = this.fallers
+      .filter((f) => f.kind === 'star')
+      .reduce<Faller | null>((best, f) => (!best || f.p.y > best.p.y ? f : best), null);
+    if (next) out['star'] = { ...next.p, eye: 'left' };
+    return out;
   }
 
   hud(): HudState {
