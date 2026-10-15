@@ -87,7 +87,12 @@ describe('local error log', () => {
     Object.defineProperty(rejection, 'reason', { value: new Error('from promise') });
     window.dispatchEvent(rejection);
     uninstall();
-    window.dispatchEvent(new ErrorEvent('error', { error: new Error('after uninstall') }));
+    // After uninstalling, nothing is logged. (A stand-in listener marks the event as handled,
+    // otherwise the test runner itself would report it as an uncaught error.)
+    const handled = (e: Event) => e.preventDefault();
+    window.addEventListener('error', handled);
+    window.dispatchEvent(new ErrorEvent('error', { error: new Error('after uninstall'), cancelable: true }));
+    window.removeEventListener('error', handled);
     await expect.poll(async () => (await listErrorLogs()).length).toBe(2);
     const messages = (await listErrorLogs()).map((e) => e.message).sort();
     expect(messages).toEqual(['Error: from promise', 'Error: from window']);
