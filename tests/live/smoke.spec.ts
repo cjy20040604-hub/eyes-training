@@ -10,10 +10,6 @@ import { readFileSync } from 'node:fs';
 const expectedVersion = (JSON.parse(readFileSync('package.json', 'utf8')) as { version: string }).version;
 const bust = `?smoke=${process.env.GITHUB_SHA ?? Date.now()}`;
 
-function origin(page: Page): string {
-  return new URL(page.url()).origin;
-}
-
 async function openFresh(page: Page) {
   await page.goto(bust);
   await expect(page.getByTestId('accept-disclaimer')).toBeVisible();
@@ -24,7 +20,8 @@ async function acceptDisclaimer(page: Page) {
   await page.getByTestId('accept-disclaimer').click();
 }
 
-test('the deployed version loads with no errors and talks to no other site', async ({ page }) => {
+test('the deployed version loads with no errors and talks to no other site', async ({ page, baseURL }) => {
+  const siteOrigin = new URL(baseURL!).origin;
   const errors: string[] = [];
   const foreign: string[] = [];
   const failed: string[] = [];
@@ -36,7 +33,7 @@ test('the deployed version loads with no errors and talks to no other site', asy
     if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`);
   });
   page.on('request', (r) => {
-    if (!r.url().startsWith(origin(page)) && !r.url().startsWith('data:')) foreign.push(r.url());
+    if (!r.url().startsWith(siteOrigin) && !r.url().startsWith('data:')) foreign.push(r.url());
   });
   await openFresh(page);
   await acceptDisclaimer(page);
