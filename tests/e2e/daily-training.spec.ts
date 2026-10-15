@@ -169,7 +169,12 @@ async function playL1(page: Page) {
 async function playL2(page: Page) {
   await startSession(page, 'l2');
   // Bug regression: a single click on the ring must move the ball and score.
-  const ring = await locateTarget(page);
+  // The first frames may not be drawn yet on a slow machine, so let time run until the ring shows.
+  let ring = await locateTarget(page);
+  for (let i = 0; !ring && i < 20; i++) {
+    await page.clock.runFor(100);
+    ring = await locateTarget(page);
+  }
   expect(ring).not.toBeNull();
   await page.mouse.click(ring!.x, ring!.y);
   await page.clock.runFor(2500);
