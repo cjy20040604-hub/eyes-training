@@ -4,6 +4,7 @@ import { useAllData } from '../data/hooks';
 import { FREQUENCY_LABELS } from '../data/schema';
 import { useSettings } from '../data/settingsStore';
 import { getModule } from '../modules/registry';
+import { CheckTrends } from '../assessment/CheckTrends';
 import { TrendsSection } from './TrendsSection';
 import { Button, Card } from '../ui';
 
@@ -19,6 +20,11 @@ export function History() {
   return (
     <div>
       <h1>{t('history.title')}</h1>
+      {(all.data?.assessments ?? []).length ? (
+        <Card title={t('check.historyTitle')}>
+          <CheckTrends assessments={all.data?.assessments ?? []} />
+        </Card>
+      ) : null}
       <Card title={t('trends.title')}>
         <TrendsSection sessions={all.data?.sessions ?? []} checks={checks} dailyCap={dailyCap} />
       </Card>

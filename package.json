@@ -1,7 +1,7 @@
 {
   "name": "eyes-training",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Binocular vision simultaneous-perception / fusion exploration and self-tracking tool (personal wellness, not a medical device).",
   "license": "MIT",
   "type": "module",

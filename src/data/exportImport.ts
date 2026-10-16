@@ -1,12 +1,14 @@
 import { getDb } from './db';
 import {
   SCHEMA_VERSION,
+  assessmentSchema,
   calibrationProfileSchema,
   exportBundleSchema,
   safetyEventSchema,
   sessionRecordSchema,
   settingsSchema,
   symptomCheckSchema,
+  type Assessment,
   type CalibrationProfile,
   type ExportBundle,
   type SafetyEvent,
@@ -33,11 +35,12 @@ export interface ExportOptions {
 
 export async function buildExportBundle(options: ExportOptions = {}): Promise<ExportBundle> {
   const db = getDb();
-  const [calibrations, sessions, symptomChecks, safetyEvents] = await Promise.all([
+  const [calibrations, sessions, symptomChecks, safetyEvents, assessments] = await Promise.all([
     db.calibrations.toArray(),
     db.sessions.toArray(),
     db.symptomChecks.toArray(),
     db.safetyEvents.toArray(),
+    db.assessments.toArray(),
   ]);
   return {
     app: 'eyes-training',
@@ -48,6 +51,7 @@ export async function buildExportBundle(options: ExportOptions = {}): Promise<Ex
     sessions,
     symptomChecks,
     safetyEvents,
+    assessments,
     ...(options.includeErrorLog ? { errorLogs: await db.errorLogs.orderBy('at').toArray() } : {}),
   };
 }
@@ -61,6 +65,7 @@ export interface ImportResult {
   sessions: number;
   symptomChecks: number;
   safetyEvents: number;
+  assessments: number;
   skipped: number;
 }
 
@@ -105,19 +110,21 @@ export async function importJson(json: string, mode: 'merge' | 'replace' = 'merg
     else skipped++;
   }
 
-  await db.transaction('rw', db.calibrations, db.sessions, db.symptomChecks, db.safetyEvents, async () => {
-    if (mode === 'replace') {
-      await Promise.all([
-        db.calibrations.clear(),
-        db.sessions.clear(),
-        db.symptomChecks.clear(),
-        db.safetyEvents.clear(),
-      ]);
-    }
+  const assessments: Assessment[] = [];
+  for (const raw of parsed.assessments ?? []) {
+    const r = assessmentSchema.safeParse(raw);
+    if (r.success) assessments.push({ ...r.data, notes: sanitizeText(r.data.notes) });
+    else skipped++;
+  }
+
+  const tables = [db.calibrations, db.sessions, db.symptomChecks, db.safetyEvents, db.assessments];
+  await db.transaction('rw', tables, async () => {
+    if (mode === 'replace') await Promise.all(tables.map((t) => t.clear()));
     await db.calibrations.bulkPut(calibrations);
     await db.sessions.bulkPut(sessions);
     await db.symptomChecks.bulkPut(checks);
     await db.safetyEvents.bulkPut(events);
+    await db.assessments.bulkPut(assessments);
   });
 
   if (parsed.settings && typeof parsed.settings === 'object') {
@@ -143,6 +150,7 @@ export async function importJson(json: string, mode: 'merge' | 'replace' = 'merg
     sessions: sessions.length,
     symptomChecks: checks.length,
     safetyEvents: events.length,
+    assessments: assessments.length,
     skipped,
   };
 }

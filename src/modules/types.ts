@@ -118,6 +118,10 @@ export interface ModuleDefinition {
    * input pauses the session ("honest dose": idle time is not counted as training).
    */
   requiresInput: boolean;
+  /** Idle time before that pause, if not the default (e.g. longer for reading a page). */
+  idlePauseMs?: number;
+  /** Tested for VR headsets (WebXR): plays in the headset when the VR renderer is chosen. */
+  vrReady?: boolean;
   /** Optional setup component; the session cannot start until it reports a config. */
   setup?: ComponentType<ModuleSetupProps>;
   create(ctx: ModuleRuntimeContext): ModuleInstance;

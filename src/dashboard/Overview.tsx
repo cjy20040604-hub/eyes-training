@@ -1,14 +1,17 @@
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useActiveCalibration, useAllData } from '../data/hooks';
 import { DISCLAIMER_VERSION, type SessionRecord } from '../data/schema';
 import { useSettings } from '../data/settingsStore';
+import { trainedToday, updateAppBadge } from '../data/goals';
 import { dayKey, dayKeyOffset } from '../data/util';
 import { MODULES } from '../modules/registry';
 import type { ModuleDefinition } from '../modules/types';
 import { isDailyCapReached, minutesUsedOnDay } from '../safety/caps';
 import { evaluateGate, type GateResult } from '../safety/gating';
 import { Banner, Progress } from '../ui';
+import { BackupReminder, WeeklyCheckCard, WeeklyGoal } from './OverviewCards';
 
 const wholeMinutes = (m: number) => Math.round(m);
 
@@ -86,6 +89,10 @@ export function Overview() {
   const used = minutesUsedOnDay(sessions, today);
   const capReached = isDailyCapReached(settings.caps, used);
   const locale = localeTag(i18n.language);
+  // Installed app: a dot on the icon on days without training yet.
+  useEffect(() => {
+    if (all.data) void updateAppBadge(trainedToday(all.data.sessions));
+  }, [all.data]);
 
   const rows: RowModel[] = MODULES.map((def) => {
     const plan = settings.dailyPlan[def.id] ?? { minutes: 0, intensityTier: 'low' as const, enabled: false };
@@ -149,6 +156,7 @@ export function Overview() {
           {t('training.progressionLockBody')}
         </Banner>
       ) : null}
+      <BackupReminder sessions={sessions} />
       <section className="today" aria-labelledby="today-title">
         <div>
           <p className="date">{longDate}</p>
@@ -182,6 +190,14 @@ export function Overview() {
         </div>
         <PrismBar done={used} planned={plannedTotal} cap={cap} />
       </section>
+
+      <div className="goal-row">
+        <WeeklyGoal sessions={sessions} />
+        <WeeklyCheckCard
+          assessments={all.data?.assessments ?? []}
+          enabled={!!calibration && !settings.trainingLock.locked}
+        />
+      </div>
 
       <h2 className="section-title">{t('overview.planTitle')}</h2>
       <ul className="plan-list">

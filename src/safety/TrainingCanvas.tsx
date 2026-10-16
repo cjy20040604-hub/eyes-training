@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CalibrationProfile, SessionEvent } from '../data/schema';
 import {
   FlashDetector,
@@ -14,6 +14,7 @@ import {
   type RendererId,
   type StereoRenderer,
 } from '../engine/renderer';
+import { WebXRRenderer } from '../engine/renderer/xr';
 import { transformToMatrix } from '../engine/affine';
 import { TransitionGuard } from '../engine/transitionGuard';
 import { degreesToPx, type ScreenGeometry } from '../engine/units';
@@ -47,6 +48,21 @@ export interface TrainingCanvasProps {
   config?: ModuleConfig;
   /** Called once when an input-driven module has had no input for IDLE_PAUSE_MS. */
   onIdle?: () => void;
+  /** VR headset presentation (WebXR renderer). Texts are already translated. */
+  vr?: TrainingVrProps;
+}
+
+export interface TrainingVrProps {
+  enabled: boolean;
+  /** Shown at the bottom of both eyes' pictures in the headset (prompt and how to STOP). */
+  hint: string;
+  /** Shown in the headset instead of the stimulus while paused (breaks, overlays). */
+  pausedText: string;
+  enterTitle: string;
+  enterLabel: string;
+  errorText: string;
+  onStop: () => void;
+  onEnded: () => void;
 }
 
 export function baseRenderOptions(
@@ -77,6 +93,9 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
   const propsRef = useRef(props);
   propsRef.current = props;
   runningRef.current = props.running;
+  const xrRef = useRef<WebXRRenderer | null>(null);
+  const [presenting, setPresenting] = useState(false);
+  const [vrError, setVrError] = useState(false);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -145,9 +164,48 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       lastInputAt = performance.now();
       idleReported = false;
     };
-    const loop = new FrameLoop((dt, now) => {
+    const idleMs = p.def.idlePauseMs ?? IDLE_PAUSE_MS;
+    // In VR the composited picture is in the headset, not on this canvas: watch each eye's
+    // layer instead (sampled onto black, so nothing from an earlier frame is counted).
+    const xr = renderer instanceof WebXRRenderer && p.vr?.enabled ? renderer : null;
+    const eyeSamplers = xr ? { left: new FrameSampler(64, 36), right: new FrameSampler(64, 36) } : null;
+    let eyeDetectors = xr ? { left: makeDetector(), right: makeDetector() } : null;
+    const rank = { ok: 0, warn: 1, danger: 2 } as const;
+    const analyze = (now: number): FlashReport => {
+      if (eyeSamplers && eyeDetectors) {
+        const a = eyeDetectors.left.analyzeFrame(eyeSamplers.left.sample(layers.left.canvas, true), now);
+        const b = eyeDetectors.right.analyzeFrame(eyeSamplers.right.sample(layers.right.canvas, true), now);
+        return rank[b.level] > rank[a.level] ? b : a;
+      }
+      return detector.analyzeFrame(sampler.sample(canvas), now);
+    };
+    /** Text drawn into both eyes' pictures (VR only: the page is not visible in a headset). */
+    const vrText = (text: string, where: 'center' | 'bottom', clear: boolean) => {
+      for (const layer of [layers.left, layers.right]) {
+        const c = clear ? layer.begin() : layer.ctx;
+        if (!text) continue;
+        c.save();
+        c.setTransform(layer.dpr, 0, 0, layer.dpr, 0, 0);
+        c.fillStyle = where === 'center' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.55)';
+        c.font = where === 'center' ? '600 22px system-ui, sans-serif' : '15px system-ui, sans-serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(
+          text,
+          layer.width / 2,
+          where === 'center' ? layer.height / 2 : layer.height - 22,
+          layer.width - 32,
+        );
+        c.restore();
+      }
+    };
+    const tick = (dt: number, now: number) => {
       if (!runningRef.current) {
         wasRunning = false;
+        if (xr) {
+          vrText(propsRef.current.vr?.pausedText ?? '', 'center', true);
+          renderer.composite({ left: layers.left.canvas, right: layers.right.canvas }, base);
+        }
         return;
       }
       if (!wasRunning) {
@@ -155,7 +213,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
         wasRunning = true;
         noteInput();
       }
-      if (p.def.requiresInput && !idleReported && performance.now() - lastInputAt > IDLE_PAUSE_MS) {
+      if (p.def.requiresInput && !idleReported && performance.now() - lastInputAt > idleMs) {
         idleReported = true;
         propsRef.current.onIdle?.();
       }
@@ -165,6 +223,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       }
       module.update(dt, now);
       module.draw(layers);
+      if (xr) vrText(propsRef.current.vr?.hint ?? '', 'bottom', false);
       if (propsRef.current.frameClockRef) propsRef.current.frameClockRef.current = performance.now();
       renderer.composite(
         { left: layers.left.canvas, right: layers.right.canvas },
@@ -172,7 +231,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       );
       // Photosensitivity watch on what is actually displayed.
       try {
-        const report = detector.analyzeFrame(sampler.sample(canvas), now);
+        const report = analyze(now);
         if (report.level !== lastFlashLevel) {
           lastFlashLevel = report.level;
           if (report.level !== 'ok') propsRef.current.onFlash(report);
@@ -193,7 +252,8 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
         hudTimer = 0;
         propsRef.current.onHud(module.hud());
       }
-    });
+    };
+    const loop = new FrameLoop(tick);
 
     // ---- Keyboard: held keys -> direction (sent only when it changes) ----
     const held = new Set<string>();
@@ -269,6 +329,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       layers.right.resize(width, height, dpr);
       module.resize(width, height);
       detector = makeDetector();
+      if (eyeDetectors) eyeDetectors = { left: makeDetector(), right: makeDetector() };
     });
     ro.observe(wrap);
 
@@ -320,8 +381,32 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       };
     }
 
-    loop.start();
+    if (xr) {
+      // The headset drives the frames; the page loop never runs in VR mode.
+      xr.configure(geometry, {
+        frame: tick,
+        action: () => {
+          if (!runningRef.current) return;
+          noteInput();
+          module.input({ type: 'action' });
+        },
+        direction: (dx, dy) => {
+          if (!runningRef.current) return;
+          noteInput();
+          module.input({ type: 'direction', dx, dy });
+        },
+        stop: () => propsRef.current.vr?.onStop(),
+        ended: () => {
+          setPresenting(false);
+          propsRef.current.vr?.onEnded();
+        },
+      });
+      xrRef.current = xr;
+    } else {
+      loop.start();
+    }
     return () => {
+      xrRef.current = null;
       if (import.meta.env.MODE === 'e2e') delete (window as ProbeWindow).__bvProbe;
       loop.dispose();
       ro.disconnect();
@@ -348,6 +433,28 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
   return (
     <div className="training-canvas-wrap" ref={wrapRef}>
       <canvas ref={canvasRef} data-testid="training-canvas" aria-label="training stimulus" role="img" />
+      {props.vr?.enabled && !presenting ? (
+        <div className="vr-enter" data-testid="vr-enter">
+          <p>{props.vr.enterTitle}</p>
+          {vrError ? <p className="field-error">{props.vr.errorText}</p> : null}
+          <button
+            type="button"
+            className="btn primary"
+            data-testid="vr-enter-button"
+            onClick={async () => {
+              setVrError(false);
+              try {
+                await xrRef.current?.startSession();
+                setPresenting(true);
+              } catch {
+                setVrError(true);
+              }
+            }}
+          >
+            {props.vr.enterLabel}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

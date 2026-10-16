@@ -1,13 +1,13 @@
 import { AnaglyphRenderer } from './AnaglyphRenderer';
 import { SbsRenderer } from './SbsRenderer';
-import { WebXRRenderer } from './WebXRRenderer';
+import { WebXRRenderer } from './xr';
 import type { RendererId, StereoRenderer } from './types';
 
 export * from './types';
 export { EyeLayer } from './EyeLayer';
 export { AnaglyphRenderer } from './AnaglyphRenderer';
 export { SbsRenderer } from './SbsRenderer';
-export { WebXRRenderer } from './WebXRRenderer';
+export { WebXRRenderer } from './xr';
 
 export function createRenderer(id: RendererId): StereoRenderer {
   switch (id) {

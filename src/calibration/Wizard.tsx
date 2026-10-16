@@ -14,12 +14,7 @@ import {
   type EyeTransform,
 } from '../engine/affine';
 import { DEFAULT_CHANNEL_MAP, type EyeChannelMap, type RenderOptions } from '../engine/renderer';
-import {
-  createStaircase,
-  staircaseRespond,
-  staircaseThreshold,
-  type StaircaseConfig,
-} from '../engine/staircase';
+import { createStaircase, staircaseRespond, staircaseThreshold } from '../engine/staircase';
 import {
   isPlausibleDistanceCm,
   prismToPixelOffset,
@@ -33,6 +28,7 @@ import { CalibCanvas } from './CalibCanvas';
 import { PpiCardCalibration } from './PpiCardCalibration';
 import { PrismInputForm, defaultClinicalPrism } from './PrismInputForm';
 import {
+  CONTRAST_STAIRCASE,
   contrastStimulus,
   ghostStimulus,
   glassesStimulus,
@@ -44,18 +40,6 @@ import {
 } from './stimuli';
 
 const STEPS = ['safety', 'screen', 'glasses', 'monocular', 'worth', 'offset', 'contrast', 'review'] as const;
-
-const CONTRAST_STAIRCASE: StaircaseConfig = {
-  start: 1,
-  min: 0.05,
-  max: 1,
-  step: 0.1,
-  up: 1,
-  down: 1,
-  harderDirection: -1,
-  maxReversals: 6,
-  stepAfterReversals: [{ reversals: 2, step: 0.05 }],
-};
 
 export function CalibrationWizard() {
   const { t } = useTranslation();

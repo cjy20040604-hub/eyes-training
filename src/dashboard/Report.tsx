@@ -8,6 +8,7 @@ import { dayKey, dayKeyOffset } from '../data/util';
 import { pxToPrismDiopters, round } from '../engine/units';
 import { getModule } from '../modules/registry';
 import { Banner, Button, Card, Segmented } from '../ui';
+import { CheckTrends, assessmentsToCsv } from '../assessment/CheckTrends';
 import { TrendsSection } from './TrendsSection';
 import { firstAndLatest, summarize } from './trends';
 
@@ -239,7 +240,17 @@ export function Report() {
         ) : null}
       </Card>
 
+      <Card title={t('report.checksTitle')}>
+        <div data-testid="report-checks">
+          <p className="hint">{t('report.checksIntro')}</p>
+          <CheckTrends
+            assessments={(all.data?.assessments ?? []).filter((a) => a.day >= fromKey && a.day <= toKey)}
+          />
+        </div>
+      </Card>
+
       <Card title={t('report.measuresTitle')}>
+        <p className="hint">{t('report.measuresIntro')}</p>
         <table data-testid="report-measures">
           <thead>
             <tr>
@@ -359,6 +370,17 @@ export function Report() {
             }
           >
             {t('report.csvSafety')}
+          </Button>
+          <Button
+            onClick={() =>
+              downloadText(
+                `weekly-checks-${stamp}.csv`,
+                assessmentsToCsv(all.data?.assessments ?? []),
+                'text/csv',
+              )
+            }
+          >
+            {t('report.csvChecks')}
           </Button>
         </div>
       </Card>

@@ -292,6 +292,7 @@ export const l2Module: ModuleDefinition = {
   intensity,
   implemented: true,
   requiresInput: true,
+  vrReady: true,
   create: (ctx) => new L2Instance(ctx),
   assess: assessL2,
 };

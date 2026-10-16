@@ -38,6 +38,9 @@ function ctxStub(): CanvasRenderingContext2D {
       height: h,
     }),
     putImageData: noop,
+    createLinearGradient: () => ({ addColorStop: noop }),
+    createRadialGradient: () => ({ addColorStop: noop }),
+    roundRect: noop,
     filter: 'none',
     fillText: noop,
     drawImage: noop,
@@ -79,6 +82,25 @@ if (!('matchMedia' in window)) {
       dispatchEvent: () => false,
     }),
   });
+}
+
+// jsdom's Blob has no text() (browsers do); read it with FileReader.
+if (typeof Blob !== 'undefined' && typeof Blob.prototype.text !== 'function') {
+  Blob.prototype.text = function text(this: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(this);
+    });
+  };
+}
+
+// jsdom does not implement media playback.
+if (typeof HTMLMediaElement !== 'undefined') {
+  HTMLMediaElement.prototype.pause = noop;
+  HTMLMediaElement.prototype.load = noop;
+  HTMLMediaElement.prototype.play = () => Promise.resolve();
 }
 
 // jsdom does not implement scrolling.

@@ -30,6 +30,12 @@ export interface SettingsActions {
   setModuleProgress: (moduleId: ModuleId, progress: ModuleProgress) => void;
   setCyclotorsionEnabled: (enabled: boolean) => void;
   setReducedMotion: (on: boolean) => void;
+  setWeeklyGoalDays: (days: number) => void;
+  setReminder: (reminder: Partial<Settings['reminder']>) => void;
+  /** Record that a backup was made (download, encrypted file or folder). */
+  markBackup: (kind: 'manual' | 'auto') => void;
+  setAutoBackup: (enabled: boolean) => void;
+  acknowledgeVrComfort: () => void;
   replaceAll: (settings: Settings) => void;
   resetAll: () => void;
 }
@@ -69,6 +75,29 @@ export const useSettings = create<SettingsStore>()(
         set((s) => ({ moduleProgress: { ...s.moduleProgress, [moduleId]: progress } })),
       setCyclotorsionEnabled: (cyclotorsionEnabled) => set({ cyclotorsionEnabled }),
       setReducedMotion: (reducedMotion) => set({ reducedMotion }),
+      setWeeklyGoalDays: (days) => set({ weeklyGoalDays: Math.max(1, Math.min(7, Math.round(days))) }),
+      setReminder: (reminder) =>
+        set((s) => ({
+          reminder: {
+            weekdays: [...new Set(reminder.weekdays ?? s.reminder.weekdays)]
+              .filter((d) => d >= 0 && d <= 6)
+              .sort(),
+            time:
+              reminder.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(reminder.time)
+                ? reminder.time
+                : s.reminder.time,
+          },
+        })),
+      markBackup: (kind) =>
+        set((s) => ({
+          backup: {
+            ...s.backup,
+            lastBackupAt: nowIso(),
+            lastAutoBackupAt: kind === 'auto' ? nowIso() : s.backup.lastAutoBackupAt,
+          },
+        })),
+      setAutoBackup: (autoBackup) => set((s) => ({ backup: { ...s.backup, autoBackup } })),
+      acknowledgeVrComfort: () => set({ vrComfortAcknowledgedAt: nowIso() }),
       replaceAll: (settings) => set({ ...settings }),
       resetAll: () => set({ ...defaultSettings() }),
     }),

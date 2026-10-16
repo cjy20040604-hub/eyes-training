@@ -37,11 +37,12 @@ treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) firs
   校准向导：信用卡测量屏幕像素密度，观看距离，眼镜颜色通道映射与串扰调节，单眼可见性检查，数字化 Worth 四点检查，录入临床棱镜度（Δ）并精确换算为像素作为虚拟棱镜初始偏移，按知觉微调，可选的旋转斜视补偿（默认关闭），对比度平衡阶梯法。
 
 - Engine: per-eye layers, swappable renderers (anaglyph Canvas 2D / WebGL, side-by-side,
-  WebXR stub), per-eye affine transform, staircase, transition guard, flash detector.
+  VR headset via WebXR — beta), per-eye affine transform, staircase, transition guard, flash
+  detector.
 
-  引擎：左右眼独立图层，可替换渲染器（红青立体 Canvas 2D / WebGL、左右并排、WebXR 占位），每只眼独立的仿射变换，阶梯法，亮度变化限速器，闪烁检测器。
+  引擎：左右眼独立图层，可替换渲染器（红青立体 Canvas 2D / WebGL、左右并排、通过 WebXR 使用 VR 头显——试用版），每只眼独立的仿射变换，阶梯法，亮度变化限速器，闪烁检测器。
 
-- Six training modules, each separating visual difficulty (intensity metric) from game
+- Eight training modules, each separating visual difficulty (intensity metric) from game
   difficulty, unlocked step by step:
   - L1 "Both Eyes On" (simultaneous perception) and L2 "Line Them Up" (flat fusion, with
     perceived-offset tracking).
@@ -49,15 +50,20 @@ treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) firs
     eye sees the basket).
   - L4 "Stretch" (fusional vergence with break / recovery, horizontal only, clinician-gated).
   - L5 "Pop-Out" (Julesz random-dot stereograms with a 2-down/1-up disparity staircase).
-  - Dichoptic video (your own local video with reduced strong-eye contrast and complementary
-    masks; brightness-capped and flash-checked).
+  - Brock string (vergence awareness: the two strings cross at the bead you look at;
+    horizontal only, clinician-gated).
+  - Two-eye reading (alternate words, or Chinese characters, go to each eye; original texts).
+  - Dichoptic video (built-in calm scenes or your own local video, with reduced strong-eye
+    contrast and complementary masks; brightness-capped and flash-checked).
 
-  六个训练模块，视觉难度（强度指标）与游戏难度分开调节，并逐步解锁：
+  八个训练模块，视觉难度（强度指标）与游戏难度分开调节，并逐步解锁：
   - L1“双眼同看”（同时知觉）和 L2“对齐它们”（平面融合，并记录感知偏差）。
   - L3“别丢了左眼”（抗抑制接星星：弱眼看星星，强眼看篮子）。
   - L4“伸展”（融合性聚散，记录破裂点与恢复点，只有水平方向，需医生同意）。
   - L5“浮现”（Julesz 随机点立体图，2 降 1 升阶梯法测立体视阈值）。
-  - 分视视频（播放你本地的视频，降低强眼对比度并加互补遮罩；限制亮度并检查闪烁）。
+  - 布洛克线（聚散感知：看着哪颗珠子，两条线就在那里交叉；只有水平方向，需医生同意）。
+  - 双眼阅读（相邻的词或汉字交替分给两只眼；文章为原创）。
+  - 分视视频（内置平静场景或你本地的视频，降低强眼对比度并加互补遮罩；限制亮度并检查闪烁）。
 
 - Dashboard: today's plan with a prism-bar meter, "ready to add" stages, unlock progress,
   progress charts (minutes, eye balance, perceived offset, catch rate, vergence break /
@@ -65,6 +71,18 @@ treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) firs
   downloads, JSON backup/import, English + 简体中文.
 
   仪表盘：今天的计划与棱镜排进度条，可加入的阶段与解锁进度，进展图表（训练分钟、双眼平衡、感知偏差、接住率、聚散破裂/恢复点、立体视阈值、复视），可打印的医生报告与 CSV 下载，JSON 备份与导入，英文和简体中文界面。
+
+- Weekly check: the same four-step measurement every week (Worth 4-dot, perceived
+  alignment, contrast balance, random-dot stereo threshold) with no feedback or score, compared
+  with a baseline from the first two checks, and shown apart from in-game scores in the report.
+
+  每周检查：每周相同的四步测量（Worth 四点、感知对准、对比度平衡、随机点立体视阈值），不提示对错也不计分，与最初两次检查形成的基线比较，并在报告中与游戏成绩分开展示。
+
+- Keeping the data and the habit: encrypted backups (AES-256, passphrase), persistent-storage
+  request, backup reminders, optional automatic backup to a folder (Chrome / Edge), a weekly
+  goal in training days, calendar reminders (.ics), and an app-icon badge on untrained days.
+
+  保住数据、坚持训练：加密备份（AES-256，密码保护），申请持久存储，备份提醒，可选的自动备份到文件夹（Chrome / Edge），按训练天数计的每周目标，日历提醒（.ics），以及未训练日的应用图标角标。
 
 - Honest dose: the session timer only runs while the stimulus is drawn, and input-driven
   modules pause after a minute without input.
@@ -75,9 +93,9 @@ treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) firs
 
   PWA：可安装，可离线使用，有新版本时提示更新。
 
-Phase 3 (encrypted export, WebXR side-by-side) is planned; see [CHANGELOG.md](CHANGELOG.md).
+Version history: [CHANGELOG.md](CHANGELOG.md). VR testing on a headset: [docs/VR-TESTING.md](docs/VR-TESTING.md).
 
-第三阶段（加密导出、WebXR 左右分屏）的计划见 [CHANGELOG.md](CHANGELOG.md)。
+版本记录见 [CHANGELOG.md](CHANGELOG.md)。在头显上测试 VR 的步骤见 [docs/VR-TESTING.md](docs/VR-TESTING.md)。
 
 ## Run · 本地运行
 

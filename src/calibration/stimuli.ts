@@ -1,5 +1,6 @@
 import type { WorthFourDotResult } from '../data/schema';
 import type { EyeChannelMap } from '../engine/renderer';
+import type { StaircaseConfig } from '../engine/staircase';
 import type { CalibDraw } from './CalibCanvas';
 
 /**
@@ -9,6 +10,22 @@ import type { CalibDraw } from './CalibCanvas';
  */
 
 type Ctx = CanvasRenderingContext2D;
+
+/**
+ * Dichoptic contrast balance staircase (calibration and weekly check): the dominant eye's
+ * contrast steps down while it looks stronger, up while it looks weaker.
+ */
+export const CONTRAST_STAIRCASE: StaircaseConfig = {
+  start: 1,
+  min: 0.05,
+  max: 1,
+  step: 0.1,
+  up: 1,
+  down: 1,
+  harderDirection: -1,
+  maxReversals: 6,
+  stepAfterReversals: [{ reversals: 2, step: 0.05 }],
+};
 
 /** The layer whose eye looks through the red filter, and the one through cyan. */
 export function filterLayers(channels: EyeChannelMap, l: Ctx, r: Ctx): { red: Ctx; cyan: Ctx } {

@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
 /** Bump when the persisted shape changes; add a migration in ./migrations. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const eyeSchema = z.enum(['left', 'right']);
 export const prismBaseSchema = z.enum(['in', 'out', 'up', 'down']);
 export const channelNameSchema = z.enum(['red', 'cyan']);
 export const intensityTierSchema = z.enum(['low', 'medium', 'high']);
-export const moduleIdSchema = z.enum(['l1', 'l2', 'l3', 'l4', 'l5', 'video']);
+export const moduleIdSchema = z.enum(['l1', 'l2', 'l3', 'l4', 'l5', 'video', 'brock', 'reading']);
 
 export type IntensityTier = z.infer<typeof intensityTierSchema>;
 export type ModuleId = z.infer<typeof moduleIdSchema>;
@@ -211,6 +211,67 @@ export const lockSchema = z.object({
   since: isoDate.nullable(),
 });
 
+/**
+ * Weekly check: a fixed measurement with no feedback and no score, kept apart from
+ * training results so progress is not confused with getting better at the games.
+ * Horizontal alignment residuals are signed: positive = the left-eye image had to move right.
+ */
+export const assessmentSchema = z.object({
+  id: z.string().min(1),
+  at: isoDate,
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  calibrationId: z.string().nullable(),
+  viewingDistanceCm: z.number(),
+  status: z.enum(['completed', 'stopped']),
+  worth: z
+    .object({
+      dotsSeen: z.number().int().min(0).max(6),
+      alternating: z.boolean(),
+      result: worthFourDotResultSchema,
+    })
+    .nullable(),
+  alignment: z
+    .object({
+      horizontalDelta: z.array(z.number().finite()),
+      verticalDelta: z.array(z.number().finite()),
+      meanDelta: z.number().finite(),
+      spreadDelta: z.number().finite(),
+    })
+    .nullable(),
+  balance: z
+    .object({ ratio: z.number().min(0.05).max(1), trials: z.number().int().nonnegative() })
+    .nullable(),
+  stereo: z
+    .object({
+      thresholdArcsec: z.number().positive().nullable(),
+      trials: z.number().int().nonnegative(),
+      correct: z.number().int().nonnegative(),
+      cantTell: z.number().int().nonnegative(),
+      minArcsec: z.number().positive(),
+    })
+    .nullable(),
+  preCheckId: z.string().nullable(),
+  postCheckId: z.string().nullable(),
+  notes: shortText,
+});
+export type Assessment = z.infer<typeof assessmentSchema>;
+
+export const reminderSchema = z.object({
+  /** Days of the week, 0 = Sunday … 6 = Saturday. */
+  weekdays: z.array(z.number().int().min(0).max(6)).max(7),
+  /** Local time HH:MM. */
+  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+});
+
+export const backupSettingsSchema = z.object({
+  lastBackupAt: isoDate.nullable(),
+  lastAutoBackupAt: isoDate.nullable(),
+  /** Write a backup file to a folder the user chose after each session (Chrome / Edge). */
+  autoBackup: z.boolean(),
+  /** Remind about backups after this many days. */
+  remindAfterDays: z.number().int().min(1).max(60),
+});
+
 export const settingsSchema = z.object({
   schemaVersion: z.number().int(),
   locale: z.enum(['en', 'zh-Hans']),
@@ -228,6 +289,12 @@ export const settingsSchema = z.object({
   moduleProgress: z.record(moduleIdSchema, moduleProgressSchema),
   cyclotorsionEnabled: z.boolean(),
   reducedMotion: z.boolean(),
+  /** Days per week the user aims to train. */
+  weeklyGoalDays: z.number().int().min(1).max(7),
+  reminder: reminderSchema,
+  backup: backupSettingsSchema,
+  /** When the VR comfort notice was acknowledged (needed once before VR sessions). */
+  vrComfortAcknowledgedAt: isoDate.nullable(),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -240,6 +307,8 @@ export const exportBundleSchema = z.object({
   sessions: z.array(z.unknown()),
   symptomChecks: z.array(z.unknown()),
   safetyEvents: z.array(z.unknown()),
+  /** Weekly checks (added in schema 2). */
+  assessments: z.array(z.unknown()).optional(),
   /** Only present when the user chose to include the local error log. Never imported. */
   errorLogs: z.array(z.unknown()).optional(),
 });
@@ -278,9 +347,15 @@ export function defaultSettings(): Settings {
       l4: { minutes: 3, intensityTier: 'low', enabled: false },
       l5: { minutes: 3, intensityTier: 'low', enabled: false },
       video: { minutes: 0, intensityTier: 'low', enabled: false },
+      brock: { minutes: 3, intensityTier: 'low', enabled: false },
+      reading: { minutes: 5, intensityTier: 'low', enabled: false },
     },
     moduleProgress: {},
     cyclotorsionEnabled: false,
     reducedMotion: false,
+    weeklyGoalDays: 4,
+    reminder: { weekdays: [1, 3, 5, 6], time: '19:00' },
+    backup: { lastBackupAt: null, lastAutoBackupAt: null, autoBackup: false, remindAfterDays: 7 },
+    vrComfortAcknowledgedAt: null,
   };
 }

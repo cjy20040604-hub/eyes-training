@@ -22,7 +22,7 @@ export type SessionPhase =
   'loading' | 'blocked' | 'ergonomics' | 'pre' | 'running' | 'completing' | 'stopcheck' | 'post' | 'summary';
 
 export type SessionOverlay = null | 'break' | 'flash' | 'paused';
-export type PauseReason = 'hidden' | 'idle';
+export type PauseReason = 'hidden' | 'idle' | 'vr';
 export type BlockReason = GateReason | 'cap' | 'not-implemented' | 'symptoms';
 
 export interface SessionState {

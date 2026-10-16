@@ -106,12 +106,12 @@ export function BreakOverlay({ leftMs }: { leftMs: number }) {
 
 export function PausedOverlay({ reason, onResume }: { reason: PauseReason; onResume: () => void }) {
   const { t } = useTranslation();
-  const idle = reason === 'idle';
+  const key = reason === 'idle' ? 'idle' : reason === 'vr' ? 'vrEnded' : 'paused';
   return (
     <div className="training-overlay" role="dialog" data-testid="overlay-paused">
       <div className="panel">
-        <h2>{t(idle ? 'training.idleTitle' : 'training.pausedTitle')}</h2>
-        <p>{t(idle ? 'training.idleBody' : 'training.pausedBody')}</p>
+        <h2>{t(`training.${key}Title`)}</h2>
+        <p>{t(`training.${key}Body`)}</p>
         <div className="row" style={{ justifyContent: 'center' }}>
           <Button variant="primary" onClick={onResume} data-testid="resume-button">
             {t('training.resume')}

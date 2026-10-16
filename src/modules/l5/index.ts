@@ -283,6 +283,7 @@ export const l5Module: ModuleDefinition = {
   intensity,
   implemented: true,
   requiresInput: true,
+  vrReady: true,
   create: (ctx) => new L5Instance(ctx),
   assess: assessL5,
 };

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { immersiveVrSupported } from '../engine/renderer/xr';
 import { getDb } from './db';
-import type { CalibrationProfile, SafetyEvent, SessionRecord, SymptomCheck } from './schema';
+import type { Assessment, CalibrationProfile, SafetyEvent, SessionRecord, SymptomCheck } from './schema';
 import { useSettings } from './settingsStore';
 
 export function useAsync<T>(
@@ -41,17 +42,19 @@ export interface AllData {
   sessions: SessionRecord[];
   checks: SymptomCheck[];
   safetyEvents: SafetyEvent[];
+  assessments: Assessment[];
 }
 
 export async function loadAllData(): Promise<AllData> {
   const db = getDb();
-  const [calibrations, sessions, checks, safetyEvents] = await Promise.all([
+  const [calibrations, sessions, checks, safetyEvents, assessments] = await Promise.all([
     db.calibrations.toArray(),
     db.sessions.toArray(),
     db.symptomChecks.toArray(),
     db.safetyEvents.toArray(),
+    db.assessments.toArray(),
   ]);
-  return { calibrations, sessions, checks, safetyEvents };
+  return { calibrations, sessions, checks, safetyEvents, assessments };
 }
 
 export function useAllData(): ReturnType<typeof useAsync<AllData>> {
@@ -69,4 +72,19 @@ export function useActiveCalibration(): {
     [id],
   );
   return { calibration: data, loading, reload };
+}
+
+/** Whether an immersive VR headset can be used here (null while checking). */
+export function useVrSupport(): boolean | null {
+  const [supported, setSupported] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    immersiveVrSupported()
+      .then((s) => alive && setSupported(s))
+      .catch(() => alive && setSupported(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return supported;
 }

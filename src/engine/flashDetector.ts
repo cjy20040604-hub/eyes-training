@@ -230,7 +230,12 @@ export class FrameSampler {
     this.ctx.imageSmoothingEnabled = true;
   }
 
-  sample(source: CanvasImageSource): Uint8ClampedArray {
+  /** clearFirst: paint black first, for sources with transparent areas (eye layers). */
+  sample(source: CanvasImageSource, clearFirst = false): Uint8ClampedArray {
+    if (clearFirst) {
+      this.ctx.fillStyle = '#000';
+      this.ctx.fillRect(0, 0, this.gridWidth, this.gridHeight);
+    }
     this.ctx.drawImage(source, 0, 0, this.gridWidth, this.gridHeight);
     return this.ctx.getImageData(0, 0, this.gridWidth, this.gridHeight).data;
   }

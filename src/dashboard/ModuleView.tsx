@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { useActiveCalibration, useAllData } from '../data/hooks';
-import { DISCLAIMER_VERSION, type IntensityTier, type ModuleId } from '../data/schema';
+import { DISCLAIMER_VERSION, moduleIdSchema, type IntensityTier, type ModuleId } from '../data/schema';
 import { useSettings } from '../data/settingsStore';
 import { getModule } from '../modules/registry';
 import { evaluateGate } from '../safety/gating';
 import { Banner, Card, Field, Segmented } from '../ui';
 
-const VALID: ModuleId[] = ['l1', 'l2', 'l3', 'l4', 'l5', 'video'];
+const VALID: readonly ModuleId[] = moduleIdSchema.options;
 
 export function ModuleView() {
   const { t } = useTranslation();

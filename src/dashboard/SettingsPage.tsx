@@ -1,13 +1,17 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { getDb } from '../data/db';
+import { backupFileName } from '../data/backup';
+import { WrongPassphraseError, decryptText, isEncryptedBackup } from '../data/crypto';
 import { downloadText, exportJson, importJson } from '../data/exportImport';
-import { useAllData } from '../data/hooks';
+import { useAllData, useVrSupport } from '../data/hooks';
 import { useSettings } from '../data/settingsStore';
 import { RENDERER_IDS } from '../engine/renderer';
 import { changeLocale } from '../i18n';
 import { Banner, Button, Card, Field, Segmented } from '../ui';
 import { Diagnostics } from './Diagnostics';
+import { BackupSection, RemindersSection } from './SettingsSections';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -17,10 +21,32 @@ export function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [includeErrorLog, setIncludeErrorLog] = useState(false);
+  const [encrypted, setEncrypted] = useState<{ text: string; mode: 'merge' | 'replace' } | null>(null);
+  const [importPass, setImportPass] = useState('');
+  const vr = useVrSupport();
+  const { hash } = useLocation();
+
+  // Links such as /settings#backup open the page at that section.
+  useEffect(() => {
+    if (!hash) return;
+    const el = document.getElementById(hash.slice(1));
+    el?.scrollIntoView?.({ block: 'start' });
+  }, [hash]);
 
   const onImport = async (file: File, mode: 'merge' | 'replace') => {
+    const text = await file.text();
+    if (isEncryptedBackup(text)) {
+      setEncrypted({ text, mode });
+      setImportPass('');
+      setMessage(t('backup.importNeedsPass'));
+      return;
+    }
+    await importText(text, mode);
+  };
+
+  const importText = async (text: string, mode: 'merge' | 'replace') => {
     try {
-      const res = await importJson(await file.text(), mode);
+      const res = await importJson(text, mode);
       setMessage(
         t('settings.importDone', {
           sessions: res.sessions,
@@ -60,9 +86,12 @@ export function SettingsPage() {
             onChange={settings.setRenderer}
             label={t('settings.renderer')}
             options={RENDERER_IDS.map((r) => ({ value: r, label: r }))}
-            disabledValues={['webxr']}
+            disabledValues={vr === true ? [] : ['webxr']}
           />
         </Field>
+        <p className="hint" data-testid="vr-support">
+          {vr === null ? t('vr.checking') : vr ? t('vr.available') : t('vr.unavailable')}
+        </p>
         <label className="row">
           <input
             type="checkbox"
@@ -226,25 +255,58 @@ export function SettingsPage() {
         <p className="hint">{t('settings.dataHint')}</p>
         <div className="row">
           <Button
-            onClick={async () =>
-              downloadText(
-                `eyes-training-backup-${new Date().toISOString().slice(0, 10)}.json`,
-                await exportJson({ includeErrorLog }),
-              )
-            }
+            onClick={async () => {
+              downloadText(backupFileName(), await exportJson({ includeErrorLog }));
+              settings.markBackup('manual');
+            }}
           >
             {t('settings.exportAll')}
           </Button>
           <input
             ref={fileRef}
             type="file"
-            accept="application/json"
+            accept="application/json,.json,.bvx"
             className="sr-only"
             aria-label={t('settings.importMerge')}
             onChange={(e) => e.target.files?.[0] && void onImport(e.target.files[0], 'merge')}
           />
           <Button onClick={() => fileRef.current?.click()}>{t('settings.importMerge')}</Button>
         </div>
+        {encrypted ? (
+          <form
+            className="row"
+            style={{ marginTop: 12 }}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const plain = await decryptText(encrypted.text, importPass);
+                setEncrypted(null);
+                await importText(plain, encrypted.mode);
+              } catch (err) {
+                setMessage(
+                  err instanceof WrongPassphraseError
+                    ? t('backup.wrongPass')
+                    : t('settings.importFailed', { error: err instanceof Error ? err.message : String(err) }),
+                );
+              }
+            }}
+          >
+            <label htmlFor="import-pass">{t('backup.importPass')}</label>
+            <input
+              id="import-pass"
+              type="password"
+              autoComplete="current-password"
+              value={importPass}
+              onChange={(e) => setImportPass(e.target.value)}
+            />
+            <Button type="submit" variant="primary" data-testid="import-decrypt">
+              {t('backup.decrypt')}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setEncrypted(null)}>
+              {t('common.cancel')}
+            </Button>
+          </form>
+        ) : null}
         <label className="row">
           <input
             type="checkbox"
@@ -272,6 +334,8 @@ export function SettingsPage() {
                     db.symptomChecks.clear(),
                     db.safetyEvents.clear(),
                     db.errorLogs.clear(),
+                    db.assessments.clear(),
+                    db.fileHandles.clear(),
                   ]);
                   settings.resetAll();
                   setConfirmReset(false);
@@ -286,6 +350,8 @@ export function SettingsPage() {
         </div>
       </Card>
 
+      <BackupSection />
+      <RemindersSection />
       <Diagnostics />
     </div>
   );

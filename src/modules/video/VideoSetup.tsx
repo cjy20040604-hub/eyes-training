@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Banner, Field, Segmented } from '../../ui';
 import type { ModuleSetupProps } from '../types';
+import { SCENE_IDS, type SceneId } from './scenes';
 
 const PLAIN_VIEWING_HOSTS = /(^|\.)(youtube\.com|youtu\.be|bilibili\.com|b23\.tv)$/i;
 
@@ -16,7 +17,8 @@ function parseHttpsUrl(text: string): URL | null {
 
 /**
  * Chooses the video for a dichoptic session.
- *  - Local file (recommended): read with the File API into a blob: URL; never uploaded.
+ *  - Built-in calm scene (default): always available, drawn live, flash-free by design.
+ *  - Local file: read with the File API into a blob: URL; never uploaded.
  *  - Direct https video URL: only works if the server allows cross-origin reading (CORS);
  *    otherwise the frames cannot be processed or checked for flashing, and playback stops.
  *  - YouTube / Bilibili and other streaming sites cannot be processed (their players and
@@ -25,7 +27,8 @@ function parseHttpsUrl(text: string): URL | null {
  */
 export function VideoSetup({ onChange }: ModuleSetupProps) {
   const { t } = useTranslation();
-  const [source, setSource] = useState<'file' | 'url'>('file');
+  const [source, setSource] = useState<'scene' | 'file' | 'url'>('scene');
+  const [scene, setScene] = useState<SceneId>('aquarium');
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState('');
   const [loop, setLoop] = useState(true);
@@ -42,7 +45,9 @@ export function VideoSetup({ onChange }: ModuleSetupProps) {
       URL.revokeObjectURL(blobRef.current);
       blobRef.current = null;
     }
-    if (source === 'file' && file) {
+    if (source === 'scene') {
+      onChange({ kind: 'scene', scene, name: t(`modules.video.scenes.${scene}`), loop: true, muted: true });
+    } else if (source === 'file' && file) {
       const src = URL.createObjectURL(file);
       blobRef.current = src;
       onChange({ kind: 'file', src, name: file.name, loop, muted });
@@ -60,7 +65,7 @@ export function VideoSetup({ onChange }: ModuleSetupProps) {
     // The blob URL is revoked when the session's video module stops, not on unmount here,
     // because the session keeps using it after this setup step is hidden.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, file, url, loop, muted]);
+  }, [source, scene, file, url, loop, muted]);
 
   return (
     <section className="video-setup" data-testid="video-setup">
@@ -74,12 +79,22 @@ export function VideoSetup({ onChange }: ModuleSetupProps) {
           onChange={setSource}
           label={t('modules.video.setup.source')}
           options={[
+            { value: 'scene', label: t('modules.video.setup.fromScene') },
             { value: 'file', label: t('modules.video.setup.fromFile') },
             { value: 'url', label: t('modules.video.setup.fromUrl') },
           ]}
         />
       </Field>
-      {source === 'file' ? (
+      {source === 'scene' ? (
+        <Field label={t('modules.video.setup.scene')} hint={t('modules.video.setup.sceneHint')}>
+          <Segmented
+            value={scene}
+            onChange={setScene}
+            label={t('modules.video.setup.scene')}
+            options={SCENE_IDS.map((id) => ({ value: id, label: t(`modules.video.scenes.${id}`) }))}
+          />
+        </Field>
+      ) : source === 'file' ? (
         <Field
           label={t('modules.video.setup.file')}
           htmlFor="video-file"
@@ -115,7 +130,7 @@ export function VideoSetup({ onChange }: ModuleSetupProps) {
           {urlIsStreamingSite ? <Banner tone="warn">{t('modules.video.setup.streamingSite')}</Banner> : null}
         </>
       )}
-      <div className="row">
+      <div className="row" hidden={source === 'scene'}>
         <label className="row">
           <input type="checkbox" checked={loop} onChange={(e) => setLoop(e.target.checked)} />
           <span>{t('modules.video.setup.loop')}</span>

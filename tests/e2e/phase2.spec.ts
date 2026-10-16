@@ -94,6 +94,7 @@ test('the video module plays a local file and refuses to start without one', asy
   await setup(page);
   await startFromOverview(page, 'video');
   await expect(page.getByTestId('video-setup')).toBeVisible();
+  await page.getByRole('button', { name: 'File on this device' }).click();
 
   // No file chosen yet: the session does not start.
   await page.getByTestId('symptom-submit').click();

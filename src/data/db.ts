@@ -1,7 +1,13 @@
 import Dexie, { type Table } from 'dexie';
 import type { ErrorLogEntry } from './errorLog';
-import type { CalibrationProfile, SafetyEvent, SessionRecord, SymptomCheck } from './schema';
+import type { Assessment, CalibrationProfile, SafetyEvent, SessionRecord, SymptomCheck } from './schema';
 import { SCHEMA_VERSION } from './schema';
+
+/** A file-system handle the user granted (e.g. the backup folder), kept across visits. */
+export interface FileHandleRow {
+  key: string;
+  handle: unknown;
+}
 
 export interface MetaRow {
   key: string;
@@ -19,6 +25,8 @@ export class AppDatabase extends Dexie {
   safetyEvents!: Table<SafetyEvent, string>;
   meta!: Table<MetaRow, string>;
   errorLogs!: Table<ErrorLogEntry, string>;
+  assessments!: Table<Assessment, string>;
+  fileHandles!: Table<FileHandleRow, string>;
 
   constructor(name = 'eyes-training') {
     super(name);
@@ -31,6 +39,8 @@ export class AppDatabase extends Dexie {
     });
     // v2: local error log (see errorLog.ts). Additive, no data migration needed.
     this.version(2).stores({ errorLogs: 'id, at' });
+    // v3: weekly checks and the remembered backup folder. Additive.
+    this.version(3).stores({ assessments: 'id, day, at', fileHandles: 'key' });
   }
 }
 

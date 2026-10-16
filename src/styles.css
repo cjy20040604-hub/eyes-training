@@ -1369,3 +1369,94 @@ thead th {
     1rem/1.5 system-ui,
     sans-serif;
 }
+
+/* ---- 0.3: weekly goal and weekly check cards (overview) ---- */
+.goal-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 48px;
+  margin: 8px 0 4px;
+}
+.goal-card p {
+  margin: 4px 0 10px;
+}
+.goal-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.goal-track {
+  fill: none;
+  stroke: var(--rule-soft);
+  stroke-width: 8;
+}
+.goal-fill {
+  fill: none;
+  stroke: var(--cobalt);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.goal-text {
+  fill: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  font-family: var(--font);
+}
+
+/* Weekly check page */
+.check-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.nudge-pad,
+.stereo-answers {
+  margin-top: 12px;
+}
+.weekday-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 8px 12px 10px;
+  border-radius: var(--radius);
+  margin: 8px 0 12px;
+}
+/* Subsections inside a settings card */
+.subhead {
+  margin: 24px 0 4px;
+  font-size: var(--step-0);
+}
+.weekday-picker legend {
+  width: 100%;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.field-error {
+  color: var(--danger);
+  margin: 4px 0 8px;
+}
+.plain-list {
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+/* VR: "Enter VR" over the (unused) page canvas */
+.vr-enter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #fff;
+  text-align: center;
+  padding: 16px;
+}
+
+@media (max-width: 760px) {
+  .goal-row {
+    grid-template-columns: 1fr;
+  }
+}

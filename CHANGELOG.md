@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented here. Versions follow SemVer; releases are git tags `vX.Y.Z`.
 
+## [0.3.0] — 2026-10-16
+
+### Added
+
+- Weekly check (`/check`): the same four-step measurement every week — Worth 4-dot, perceived alignment (twice, from a random off-centre start), contrast balance, and a random-dot stereo threshold (2-down/1-up, no feedback, up to 30 patterns). The first two checks form the baseline. Results are stored separately from sessions, shown on the overview, history and report ("Measured" vs "Training scores from the games"), and exported as CSV.
+- Encrypted backups: AES-256-GCM with a PBKDF2-SHA-256 key (600 000 rounds), browser Web Crypto only; encrypted files (`.bvx`) are detected on import and need the passphrase.
+- Data safety: persistent-storage request (after a completed session or from Settings), backup reminders on the overview, and optional automatic backup to a chosen folder after each session (File System Access API, Chrome / Edge).
+- Weekly goal in training days (Monday to Sunday) with a progress ring; calendar reminders as an `.ics` file (weekly days and time, with an alarm); app-icon badge on days without training (installed app).
+- VR headset presentation via WebXR (beta) for L1, L2 and L5: each eye sees its own layer on a world-locked panel with the same angular size and Δ offsets as the calibrated screen; controller trigger = Space, grip = STOP; leaving VR pauses; VR sessions are at most 10 minutes; a one-time comfort notice; flash checking on each eye's picture. Other modules fall back to the glasses with a notice.
+- Brock string module (B): three beads from near to far with crossed / uncrossed disparity; report crossings (Space) and a fading string (Arrow Down); horizontal only, near demand 1–8Δ, at most 2Δ divergence; clinician-gated like L4.
+- Two-eye reading module (R): alternate words (Chinese: characters) go to each eye; the dominant eye is dimmed; page turning, "words missing" reports; six short original passages in each language.
+- Built-in calm scenes for the video module (aquarium, drifting clouds, floating lanterns), drawn live and flash-free by design; now the default source.
+
+### Changed
+
+- Settings schema 2 (migrated automatically): new modules in the daily plan, weekly goal, reminders, backup and VR settings. IndexedDB version 3 adds the weekly checks and the remembered backup folder.
+- The report separates "Measured: weekly check" from "Training scores (from the games)".
+
+### Tests
+
+- 54 new unit and component tests (285 in total): encryption, backups and the folder writer, reminders and the calendar file, weekly goals, the weekly check end to end in jsdom, VR geometry and the VR training path, Brock string, reading layout, scenes.
+- New end-to-end tests: the weekly check in a real browser, Brock string and reading (per-eye pixels), a built-in scene, encrypted backup export / wipe / restore, backup reminder and calendar file, and the VR fallback without a headset.
+
 ## [0.2.1] — 2026-10-16
 
 ### Added

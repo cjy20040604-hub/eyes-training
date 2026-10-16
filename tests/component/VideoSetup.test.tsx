@@ -32,9 +32,24 @@ function setup() {
   return { onChange, user: userEvent.setup(), last: () => onChange.mock.calls.at(-1)?.[0] ?? null };
 }
 
+/** Switch from the default built-in scene to "File on this device". */
+async function useFile() {
+  const s = setup();
+  await s.user.click(screen.getByRole('button', { name: 'File on this device' }));
+  return s;
+}
+
 describe('video setup', () => {
-  it('reports nothing until a video is chosen, then a local blob URL that never leaves the device', async () => {
+  it('offers a built-in calm scene by default, ready without any file', async () => {
     const { user, last } = setup();
+    expect(last()).toMatchObject({ kind: 'scene', scene: 'aquarium', name: 'Aquarium' });
+    await user.click(screen.getByRole('button', { name: 'Floating lanterns' }));
+    expect(last()).toMatchObject({ kind: 'scene', scene: 'lanterns' });
+    expect(created).toEqual([]);
+  });
+
+  it('reports nothing until a video is chosen, then a local blob URL that never leaves the device', async () => {
+    const { user, last } = await useFile();
     expect(last()).toBeNull();
     const file = new File([new Uint8Array([1, 2, 3])], 'calm.webm', { type: 'video/webm' });
     await user.upload(screen.getByTestId('video-file'), file);
@@ -49,7 +64,7 @@ describe('video setup', () => {
   });
 
   it('replacing the file revokes the previous blob URL', async () => {
-    const { user, last } = setup();
+    const { user, last } = await useFile();
     await user.upload(screen.getByTestId('video-file'), new File(['a'], 'a.webm', { type: 'video/webm' }));
     await user.upload(screen.getByTestId('video-file'), new File(['b'], 'b.webm', { type: 'video/webm' }));
     expect(revoked).toContain('blob:test/1');
@@ -57,7 +72,7 @@ describe('video setup', () => {
   });
 
   it('loop and mute options are passed on', async () => {
-    const { user, last } = setup();
+    const { user, last } = await useFile();
     await user.upload(screen.getByTestId('video-file'), new File(['a'], 'a.webm', { type: 'video/webm' }));
     const [loop, muted] = screen.getAllByRole('checkbox');
     await user.click(loop!);

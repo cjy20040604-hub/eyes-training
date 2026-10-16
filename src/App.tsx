@@ -25,6 +25,7 @@ const Report = lazy(() => import('./dashboard/Report').then((m) => ({ default: m
 const SettingsPage = lazy(() =>
   import('./dashboard/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
+const WeeklyCheck = lazy(() => import('./assessment/WeeklyCheck').then((m) => ({ default: m.WeeklyCheck })));
 const TrainingShell = lazy(() =>
   import('./safety/TrainingShell').then((m) => ({ default: m.TrainingShell })),
 );
@@ -200,6 +201,7 @@ export default function App() {
                 <Route path="/train/:moduleId" element={<TrainingRoute />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/report" element={<Report />} />
+                <Route path="/check" element={<WeeklyCheck />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/red-flag" element={<RedFlagPage />} />
                 <Route path="*" element={<Overview />} />

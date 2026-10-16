@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useActiveCalibration, useAllData } from '../data/hooks';
+import { backupToFolder, requestPersistentStorage } from '../data/backup';
+import { updateAppBadge } from '../data/goals';
+import { useActiveCalibration, useAllData, useVrSupport } from '../data/hooks';
 import {
   DISCLAIMER_VERSION,
+  moduleIdSchema,
   type ModuleId,
   type ModuleProgress,
   type SessionEvent,
@@ -12,12 +15,14 @@ import {
 import { useSettings } from '../data/settingsStore';
 import { dayKey, nowIso } from '../data/util';
 import type { FlashReport } from '../engine/flashDetector';
+import { VR_MAX_SESSION_MINUTES } from '../engine/renderer/xr';
 import { autoAdvance, initialProgress, moveTowardTier, type ProgressChange } from '../modules/adaptive';
 import { getModule } from '../modules/registry';
 import type { HudState, ModuleConfig } from '../modules/types';
 import { Banner, Card } from '../ui';
 import { allowedSessionMinutes, isBreakDue, minutesUsedOnDay } from './caps';
 import { ErgonomicsCard } from './ErgonomicsCard';
+import { VrComfortCard } from './VrComfortCard';
 import { evaluateGate } from './gating';
 import {
   applyPostCheckRules,
@@ -48,7 +53,7 @@ import {
   type SessionOutcome,
 } from './TrainingViews';
 
-const VALID: ModuleId[] = ['l1', 'l2', 'l3', 'l4', 'l5', 'video'];
+const VALID: readonly ModuleId[] = moduleIdSchema.options;
 
 /**
  * One training session: gate → ergonomics → pre-check → stimulus → post-check → summary.
@@ -92,7 +97,16 @@ export function TrainingShell() {
     Math.min(def.maxMinutes, plan.minutes || def.defaultMinutes),
   );
   const usedToday = all.data ? minutesUsedOnDay(all.data.sessions, dayKey()) : 0;
-  const allowedMinutes = allowedSessionMinutes(settings.caps, plannedMinutes, usedToday);
+  // VR headset: only for modules tested in VR, and only when a headset is available.
+  const vrSupported = useVrSupport();
+  const wantsVr = settings.rendererId === 'webxr';
+  const vrMode = wantsVr && !!def.vrReady && vrSupported === true;
+  const rendererId = wantsVr && !vrMode ? 'anaglyph-canvas2d' : settings.rendererId;
+  // VR sessions are kept shorter (cybersickness).
+  const allowedMinutes = Math.min(
+    allowedSessionMinutes(settings.caps, plannedMinutes, usedToday),
+    vrMode ? VR_MAX_SESSION_MINUTES : Infinity,
+  );
   const sessionMs = allowedMinutes * 60000;
 
   // ---- Gate evaluation (once data is ready; later changes are handled by the session flow) ----
@@ -368,6 +382,12 @@ export function TrainingShell() {
       return;
     }
     dispatch({ type: 'post-done' });
+    // Keep the data safe: ask the browser to keep it, and update the backup folder if set.
+    if (s?.status === 'completed') {
+      void updateAppBadge(true);
+      void requestPersistentStorage();
+    }
+    void backupToFolder();
   };
 
   // ---------------- Render ----------------
@@ -386,9 +406,23 @@ export function TrainingShell() {
     );
   }
 
+  if (phase === 'pre' && vrMode && !settings.vrComfortAcknowledgedAt) {
+    return <VrComfortCard onAcknowledge={settings.acknowledgeVrComfort} />;
+  }
+
   if (phase === 'pre') {
     return (
       <Card title={t('training.preTitle', { code: def.code, name: t(`modules.${id}.name`) })}>
+        {wantsVr && vrSupported !== null && !vrMode ? (
+          <div data-testid="vr-fallback">
+            <Banner tone="warn">{t(def.vrReady ? 'vr.fallbackNoHeadset' : 'vr.fallbackModule')}</Banner>
+          </div>
+        ) : null}
+        {vrMode ? (
+          <div data-testid="vr-pre">
+            <Banner tone="info">{t('vr.preInfo', { minutes: allowedMinutes })}</Banner>
+          </div>
+        ) : null}
         <Banner tone="info">
           {t('training.preInfo', {
             minutes: allowedMinutes,
@@ -448,7 +482,7 @@ export function TrainingShell() {
           <TrainingCanvas
             def={def}
             calibration={calibration}
-            rendererId={settings.rendererId}
+            rendererId={rendererId}
             intensityValue={progress.intensityValue}
             gameDifficulty={progress.gameDifficulty}
             reducedMotion={settings.reducedMotion}
@@ -461,6 +495,29 @@ export function TrainingShell() {
             frameClockRef={frameClockRef}
             config={setupConfig ?? {}}
             onIdle={() => dispatch({ type: 'pause', reason: 'idle' })}
+            vr={
+              vrMode
+                ? {
+                    enabled: true,
+                    hint: [hud.promptKey ? t(hud.promptKey, hud.promptParams ?? {}) : '', t('vr.stopHint')]
+                      .filter(Boolean)
+                      .join('  ·  '),
+                    pausedText:
+                      overlay === 'break'
+                        ? t('vr.breakText', { seconds: Math.ceil(breakLeftMs / 1000) })
+                        : overlay === 'flash'
+                          ? t('vr.flashText')
+                          : overlay === 'paused'
+                            ? t('vr.pausedText')
+                            : '',
+                    enterTitle: t('vr.enterTitle'),
+                    enterLabel: t('vr.enter'),
+                    errorText: t('vr.error'),
+                    onStop,
+                    onEnded: () => dispatch({ type: 'pause', reason: 'vr' }),
+                  }
+                : undefined
+            }
           />
         ) : null}
         {overlay === 'break' ? <BreakOverlay leftMs={breakLeftMs} /> : null}

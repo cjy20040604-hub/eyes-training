@@ -9,6 +9,10 @@ type Migration = (input: Record<string, unknown>) => Record<string, unknown>;
 export const settingsMigrations: Record<number, Migration> = {
   // 0 -> 1: initial. Nothing stored before v1; merge onto defaults.
   0: (input) => ({ ...defaultSettings(), ...input, schemaVersion: 1 }),
+  // 1 -> 2: Brock string and reading modules, weekly goal, reminders, backup and VR
+  // settings. All new fields take their defaults (deepMergeDefaults below), and the two
+  // new modules join the daily plan switched off.
+  1: (input) => ({ ...input, schemaVersion: 2 }),
 };
 
 export function migrateSettings(raw: unknown, fromVersion: number): Settings {

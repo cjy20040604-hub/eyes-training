@@ -10,6 +10,7 @@ import type {
   ModuleRuntimeContext,
   Performance,
 } from '../types';
+import { SCENE_IDS, SceneSource, type SceneId } from './scenes';
 import { VideoSetup } from './VideoSetup';
 
 /**
@@ -23,6 +24,7 @@ import { VideoSetup } from './VideoSetup';
  *    picture, the other eye still sees it, so the full picture needs both eyes.
  *  - Overall brightness is capped (BRIGHTNESS_CAP) and the session's flash detector watches
  *    every rendered frame; the video pauses with any break, overlay or STOP.
+ *  - Besides the user's own files, built-in calm scenes (scenes.ts) are always available.
  *
  * Visual difficulty = dichoptic strength (0..0.9).
  */
@@ -58,6 +60,8 @@ export function eyeVisibility(m: number, s: number): { left: number; right: numb
 
 export class VideoInstance implements ModuleInstance {
   readonly video: HTMLVideoElement;
+  /** A built-in scene instead of a video file. */
+  readonly scene: SceneSource | null;
   private readonly maskLeft: HTMLCanvasElement;
   private readonly maskRight: HTMLCanvasElement;
   private readonly seed: number;
@@ -72,8 +76,13 @@ export class VideoInstance implements ModuleInstance {
   constructor(private ctx: ModuleRuntimeContext) {
     const v = document.createElement('video');
     const kind = String(ctx.config['kind'] ?? 'file');
+    const sceneId = String(ctx.config['scene'] ?? '');
+    this.scene =
+      kind === 'scene' && (SCENE_IDS as readonly string[]).includes(sceneId)
+        ? new SceneSource(sceneId as SceneId, Math.floor(ctx.random() * 1000))
+        : null;
     if (kind === 'url') v.crossOrigin = 'anonymous';
-    v.src = String(ctx.config['src'] ?? '');
+    if (!this.scene) v.src = String(ctx.config['src'] ?? '');
     v.loop = ctx.config['loop'] !== false;
     v.muted = ctx.config['muted'] === true;
     v.playsInline = true;
@@ -95,7 +104,7 @@ export class VideoInstance implements ModuleInstance {
   }
 
   private play(): void {
-    if (this.paused || this.ended) return;
+    if (this.paused || this.ended || this.scene) return;
     const p = this.video.play();
     if (p && typeof p.then === 'function') {
       p.then(
@@ -123,7 +132,12 @@ export class VideoInstance implements ModuleInstance {
 
   update(dtMs: number, _nowMs: number): void {
     this.t += dtMs / 1000;
-    if (!this.video.paused && !this.video.ended && this.video.readyState >= 2) this.watchedMs += dtMs;
+    if (this.scene) {
+      if (!this.paused) {
+        this.scene.update(dtMs);
+        this.watchedMs += dtMs;
+      }
+    } else if (!this.video.paused && !this.video.ended && this.video.readyState >= 2) this.watchedMs += dtMs;
     this.updateMasks();
   }
 
@@ -153,8 +167,8 @@ export class VideoInstance implements ModuleInstance {
     // Video may use a little more than the game area, still near primary gaze.
     const maxW = a.halfW * 2 * 1.25;
     const maxH = a.halfH * 2 * 1.25;
-    const vw = this.video.videoWidth || 16;
-    const vh = this.video.videoHeight || 9;
+    const vw = this.scene ? this.scene.width : this.video.videoWidth || 16;
+    const vh = this.scene ? this.scene.height : this.video.videoHeight || 9;
     const k = Math.min(maxW / vw, maxH / vh);
     const w = vw * k;
     const h = vh * k;
@@ -164,7 +178,8 @@ export class VideoInstance implements ModuleInstance {
   draw(layers: { left: EyeLayer; right: EyeLayer }): void {
     const l = layers.left.begin();
     const r = layers.right.begin();
-    const ready = this.video.readyState >= 2 && !this.errorKey;
+    const ready = this.scene ? true : this.video.readyState >= 2 && !this.errorKey;
+    const source: CanvasImageSource = this.scene ? this.scene.canvas : this.video;
     const f = this.fitRect();
     for (const [c, mask] of [
       [l, this.maskLeft],
@@ -173,7 +188,7 @@ export class VideoInstance implements ModuleInstance {
       if (!ready) continue;
       c.save();
       c.filter = 'grayscale(1)';
-      c.drawImage(this.video, f.x, f.y, f.w, f.h);
+      c.drawImage(source, f.x, f.y, f.w, f.h);
       c.filter = 'none';
       c.globalCompositeOperation = 'destination-out';
       c.imageSmoothingEnabled = true;
@@ -219,7 +234,7 @@ export class VideoInstance implements ModuleInstance {
         ? 'modules.video.prompt.tapToPlay'
         : this.ended
           ? 'modules.video.prompt.ended'
-          : this.video.readyState < 2
+          : !this.scene && this.video.readyState < 2
             ? 'modules.video.prompt.loading'
             : 'modules.video.prompt.watching';
     return {
@@ -233,7 +248,7 @@ export class VideoInstance implements ModuleInstance {
   metrics(): Record<string, number> {
     return {
       watchedSeconds: Math.round(this.watchedMs / 1000),
-      videoSeconds: Number.isFinite(this.video.duration) ? Math.round(this.video.duration) : 0,
+      videoSeconds: !this.scene && Number.isFinite(this.video.duration) ? Math.round(this.video.duration) : 0,
     };
   }
 

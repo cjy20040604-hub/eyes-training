@@ -17,6 +17,9 @@ export const MODULE_GATES: Record<ModuleId, GateRequirement> = {
   l4: 'stable-and-clinician',
   l5: 'stable-l1-l2',
   video: 'stable-l1-l2',
+  // The Brock string asks for convergence, like L4.
+  brock: 'stable-and-clinician',
+  reading: 'stable-l1-l2',
 };
 
 export type GateReason =
