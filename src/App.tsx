@@ -1,6 +1,6 @@
 import { Component, Suspense, lazy, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HashRouter, NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Overview } from './dashboard/Overview';
 import { RedFlagPage } from './dashboard/RedFlagPage';
@@ -204,11 +204,15 @@ function ScrollToTop() {
 
 function Gate({ children }: { children: ReactNode }) {
   const settings = useSettings();
+  const navigate = useNavigate();
   if (!disclaimerAccepted(settings)) {
     return (
       <DisclaimerScreen
         onAccept={() => {
           settings.acceptDisclaimer();
+          // Whatever address was opened, a first visit continues on the overview, which
+          // offers the quick start and the calibration.
+          navigate('/', { replace: true });
           window.scrollTo(0, 0);
         }}
       />

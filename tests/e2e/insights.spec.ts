@@ -82,3 +82,17 @@ test('the evaluation page runs every case and reports the rates', async ({ page 
   // The scripted model never mentions mismatches: the content checks catch that.
   await expect(page.getByTestId('lab-row-doubtful')).toContainText('mentions-mismatch');
 });
+
+test('a new user who opens a deep link continues on the overview after the disclaimer', async ({ page }) => {
+  await page.goto('/#/lab/insights');
+  for (const id of ['ack-1', 'ack-2', 'ack-3', 'ack-4']) await page.getByTestId(id).check();
+  await page.getByTestId('accept-disclaimer').click();
+  await expect(page.getByRole('heading', { name: "Today's training" })).toBeVisible();
+  await expect(page.getByTestId('start-quick')).toBeVisible();
+  expect(new URL(page.url()).hash).toBe('#/');
+  // The developer page itself says what it is and links back.
+  await page.goto('/#/lab/insights');
+  await expect(page.getByTestId('lab-notice')).toContainText('developer page');
+  await page.getByRole('link', { name: 'Back to the overview' }).click();
+  await expect(page.getByRole('heading', { name: "Today's training" })).toBeVisible();
+});

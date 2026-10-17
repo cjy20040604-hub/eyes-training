@@ -1068,6 +1068,8 @@
       "doubtful": "Sessions whose reports did not quite match: {{count}}. They did not raise the difficulty."
     },
     "aiBadge": "Written by on-device AI · checked against your numbers",
-    "aiBadgeRetry": "Written by on-device AI · checked against your numbers (second try)"
+    "aiBadgeRetry": "Written by on-device AI · checked against your numbers (second try)",
+    "labNotice": "This is a developer page that measures the on-device AI recap. You do not need it to train.",
+    "labBack": "Back to the overview"
   }
 }

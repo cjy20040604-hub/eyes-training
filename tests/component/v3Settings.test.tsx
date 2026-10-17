@@ -136,7 +136,7 @@ describe('settings: backup and reminders', () => {
 
   it('VR stays unavailable without a headset', async () => {
     wrap(<SettingsPage />);
-    expect(await screen.findByTestId('vr-support')).toHaveTextContent('No VR headset found');
+    await waitFor(() => expect(screen.getByTestId('vr-support')).toHaveTextContent('No VR headset found'));
     expect(screen.getByRole('button', { name: 'webxr' })).toBeDisabled();
   });
 });

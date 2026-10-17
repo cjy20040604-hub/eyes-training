@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, Card, Progress } from '../ui';
 import { EVAL_CASES, softChecks, type SoftCheck } from './evalCases';
@@ -56,7 +57,7 @@ function summarizeRows(rows: Row[]) {
  * pass rates, retries, fallbacks, content checks and latency. Nothing leaves the device.
  */
 export function InsightLab() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [zh, setZh] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
@@ -143,137 +144,144 @@ export function InsightLab() {
   );
 
   return (
-    // English-only developer page inside a possibly Chinese UI: not for page translation,
-    // which would rewrite the live results under React.
-    <div className="insight-lab" data-testid="insight-lab" lang="en" translate="no">
-      <h1>Weekly recap: evaluation</h1>
-      <p className="hint">
-        Runs {EVAL_CASES.length} fixed weeks through this browser&apos;s on-device model, using the same
-        prompt, guardrails and fallback as the app. Developer page; English only.
-      </p>
-      <Card>
-        <p>
-          Model: <strong data-testid="lab-availability">{availability ?? 'checking…'}</strong>
+    <>
+      <div className="no-print" data-testid="lab-notice">
+        <Banner tone="info">
+          {t('insights.labNotice')} <Link to="/">{t('insights.labBack')}</Link>
+        </Banner>
+      </div>
+      {/* English-only developer page inside a possibly Chinese UI: not for page translation,
+          which would rewrite the live results under React. */}
+      <div className="insight-lab" data-testid="insight-lab" lang="en" translate="no">
+        <h1>Weekly recap: evaluation</h1>
+        <p className="hint">
+          Runs {EVAL_CASES.length} fixed weeks through this browser&apos;s on-device model, using the same
+          prompt, guardrails and fallback as the app. Developer page; English only.
         </p>
-        <label className="row">
-          <input type="checkbox" checked={zh} onChange={(e) => setZh(e.target.checked)} /> Also translate to
-          Chinese (on-device Translator) and check the translation
-        </label>
-        <div className="row">
-          <Button
-            variant="primary"
-            onClick={() => void run()}
-            disabled={!!running || availability === 'unsupported' || availability === 'unavailable'}
-            data-testid="lab-run"
-          >
-            Run {EVAL_CASES.length} cases
-          </Button>
-          {rows.length && !running ? (
-            <Button onClick={() => void navigator.clipboard?.writeText(results)} data-testid="lab-copy">
-              Copy results (JSON)
+        <Card>
+          <p>
+            Model: <strong data-testid="lab-availability">{availability ?? 'checking…'}</strong>
+          </p>
+          <label className="row">
+            <input type="checkbox" checked={zh} onChange={(e) => setZh(e.target.checked)} /> Also translate to
+            Chinese (on-device Translator) and check the translation
+          </label>
+          <div className="row">
+            <Button
+              variant="primary"
+              onClick={() => void run()}
+              disabled={!!running || availability === 'unsupported' || availability === 'unavailable'}
+              data-testid="lab-run"
+            >
+              Run {EVAL_CASES.length} cases
             </Button>
-          ) : null}
-        </div>
-        {running ? (
-          <div data-testid="lab-running">
-            {running.download !== null && running.download < 1 ? (
-              <>
-                <p className="hint">Downloading the model: {Math.round(running.download * 100)}%</p>
-                <Progress value={running.download} label="Model download" />
-              </>
-            ) : (
-              <p className="hint">
-                Case {Math.min(running.done + 1, EVAL_CASES.length)} of {EVAL_CASES.length}…
-              </p>
-            )}
+            {rows.length && !running ? (
+              <Button onClick={() => void navigator.clipboard?.writeText(results)} data-testid="lab-copy">
+                Copy results (JSON)
+              </Button>
+            ) : null}
           </div>
-        ) : null}
-        {error ? <Banner tone="danger">{error}</Banner> : null}
-      </Card>
-
-      {rows.length ? (
-        <Card title="Summary">
-          <dl className="kv" data-testid="lab-summary">
-            <dt>Cases</dt>
-            <dd>{s.cases}</dd>
-            <dt>Passed the guardrails first time</dt>
-            <dd data-testid="lab-pass-first">
-              {s.passFirst} ({pct(s.passFirst, s.cases)})
-            </dd>
-            <dt>Passed after one corrective retry</dt>
-            <dd data-testid="lab-pass-any">
-              {s.passAny} ({pct(s.passAny, s.cases)})
-            </dd>
-            <dt>Fell back to the rule-based recap</dt>
-            <dd data-testid="lab-fallback">
-              {s.fallback} ({pct(s.fallback, s.cases)})
-            </dd>
-            <dt>Content checks passed</dt>
-            <dd data-testid="lab-soft">
-              {s.softPassed} / {s.softTotal} ({pct(s.softPassed, s.softTotal)})
-            </dd>
-            <dt>Latency per case</dt>
-            <dd data-testid="lab-latency">
-              median {(s.medianMs / 1000).toFixed(1)} s, p90 {(s.p90Ms / 1000).toFixed(1)} s
-            </dd>
-            <dt>Rejections by rule</dt>
-            <dd data-testid="lab-problems">
-              {Object.entries(s.problems)
-                .sort((a, b) => b[1] - a[1])
-                .map(([k, v]) => `${k} ×${v}`)
-                .join(', ') || 'none'}
-            </dd>
-          </dl>
-        </Card>
-      ) : null}
-
-      {rows.map((r) => (
-        <Card key={r.id} title={`${r.id}: ${r.outcome}`}>
-          <div data-testid={`lab-row-${r.id}`}>
-            <p className="hint">
-              {r.about} · {(r.result.ms / 1000).toFixed(1)} s · attempts {r.result.attempts}
-              {r.result.reason ? ` · ${r.result.reason}` : ''}
-            </p>
-            {r.result.problems.length ? (
-              <p>
-                Rejected: <code>{r.result.problems.map((p) => p.join(', ')).join(' | ')}</code>
-              </p>
-            ) : null}
-            {r.soft.some((x) => !x.passed) ? (
-              <p>
-                Content checks failed:{' '}
-                <code>
-                  {r.soft
-                    .filter((x) => !x.passed)
-                    .map((x) => x.id)
-                    .join(', ')}
-                </code>
-              </p>
-            ) : null}
-            <div className="insight-text">
-              <h3>{r.result.draft.headline}</h3>
-              <ul>
-                {r.result.draft.points.map((p, i) => (
-                  <li key={i}>{p}</li>
-                ))}
-              </ul>
-              <p>{r.result.draft.suggestion}</p>
+          {running ? (
+            <div data-testid="lab-running">
+              {running.download !== null && running.download < 1 ? (
+                <>
+                  <p className="hint">Downloading the model: {Math.round(running.download * 100)}%</p>
+                  <Progress value={running.download} label="Model download" />
+                </>
+              ) : (
+                <p className="hint">
+                  Case {Math.min(running.done + 1, EVAL_CASES.length)} of {EVAL_CASES.length}…
+                </p>
+              )}
             </div>
-            <details>
-              <summary>Rule-based baseline</summary>
+          ) : null}
+          {error ? <Banner tone="danger">{error}</Banner> : null}
+        </Card>
+
+        {rows.length ? (
+          <Card title="Summary">
+            <dl className="kv" data-testid="lab-summary">
+              <dt>Cases</dt>
+              <dd>{s.cases}</dd>
+              <dt>Passed the guardrails first time</dt>
+              <dd data-testid="lab-pass-first">
+                {s.passFirst} ({pct(s.passFirst, s.cases)})
+              </dd>
+              <dt>Passed after one corrective retry</dt>
+              <dd data-testid="lab-pass-any">
+                {s.passAny} ({pct(s.passAny, s.cases)})
+              </dd>
+              <dt>Fell back to the rule-based recap</dt>
+              <dd data-testid="lab-fallback">
+                {s.fallback} ({pct(s.fallback, s.cases)})
+              </dd>
+              <dt>Content checks passed</dt>
+              <dd data-testid="lab-soft">
+                {s.softPassed} / {s.softTotal} ({pct(s.softPassed, s.softTotal)})
+              </dd>
+              <dt>Latency per case</dt>
+              <dd data-testid="lab-latency">
+                median {(s.medianMs / 1000).toFixed(1)} s, p90 {(s.p90Ms / 1000).toFixed(1)} s
+              </dd>
+              <dt>Rejections by rule</dt>
+              <dd data-testid="lab-problems">
+                {Object.entries(s.problems)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([k, v]) => `${k} ×${v}`)
+                  .join(', ') || 'none'}
+              </dd>
+            </dl>
+          </Card>
+        ) : null}
+
+        {rows.map((r) => (
+          <Card key={r.id} title={`${r.id}: ${r.outcome}`}>
+            <div data-testid={`lab-row-${r.id}`}>
+              <p className="hint">
+                {r.about} · {(r.result.ms / 1000).toFixed(1)} s · attempts {r.result.attempts}
+                {r.result.reason ? ` · ${r.result.reason}` : ''}
+              </p>
+              {r.result.problems.length ? (
+                <p>
+                  Rejected: <code>{r.result.problems.map((p) => p.join(', ')).join(' | ')}</code>
+                </p>
+              ) : null}
+              {r.soft.some((x) => !x.passed) ? (
+                <p>
+                  Content checks failed:{' '}
+                  <code>
+                    {r.soft
+                      .filter((x) => !x.passed)
+                      .map((x) => x.id)
+                      .join(', ')}
+                  </code>
+                </p>
+              ) : null}
               <div className="insight-text">
-                <h3>{r.baseline.headline}</h3>
+                <h3>{r.result.draft.headline}</h3>
                 <ul>
-                  {r.baseline.points.map((p, i) => (
+                  {r.result.draft.points.map((p, i) => (
                     <li key={i}>{p}</li>
                   ))}
                 </ul>
-                <p>{r.baseline.suggestion}</p>
+                <p>{r.result.draft.suggestion}</p>
               </div>
-            </details>
-          </div>
-        </Card>
-      ))}
-    </div>
+              <details>
+                <summary>Rule-based baseline</summary>
+                <div className="insight-text">
+                  <h3>{r.baseline.headline}</h3>
+                  <ul>
+                    {r.baseline.points.map((p, i) => (
+                      <li key={i}>{p}</li>
+                    ))}
+                  </ul>
+                  <p>{r.baseline.suggestion}</p>
+                </div>
+              </details>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </>
   );
 }
