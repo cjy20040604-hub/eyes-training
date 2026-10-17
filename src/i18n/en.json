@@ -1028,5 +1028,46 @@
     "privacy1": "Your email address and a password hash (to sign in), handled by Supabase.",
     "privacy2": "One encrypted file: compressed and encrypted on your device (AES-256-GCM). Without your sync passphrase it cannot be read — not by the server, not by the app’s owner.",
     "privacy3": "When and from which kind of device (e.g. \"Chrome · Windows\") it was last updated."
+  },
+  "insights": {
+    "title": "Weekly recap",
+    "intro": "The last 7 days in plain words, from your own records.",
+    "ruleBadge": "Rule-based summary",
+    "tip": "Next:",
+    "generate": "Rewrite with on-device AI",
+    "regenerate": "Write it again",
+    "downloadHint": "The first time, Chrome downloads its built-in AI model (a few GB, once). It runs on this computer: nothing is sent anywhere.",
+    "downloading": "Downloading the on-device model… {{percent}}%",
+    "downloadLabel": "Model download",
+    "writing": "Writing on this device…",
+    "unsupported": "This browser has no built-in AI model (it needs a recent desktop Chrome with enough memory). The summary above uses the same numbers.",
+    "safetyTitle": "No recap this week",
+    "safety": "This week you reported double vision, a moderate headache or a warning symptom, so the recap is switched off. Please pause training and talk to your orthoptist or eye doctor.",
+    "tooLittle": "A recap needs at least {{needed}} sessions in the last 7 days (so far: {{sessions}}).",
+    "fallback": {
+      "checks-failed": "The AI draft did not pass the checks twice, so the rule-based summary is shown.",
+      "error": "The on-device model could not write a recap this time, so the rule-based summary is shown.",
+      "no-translator": "The AI recap could not be translated on this device, so the rule-based summary is shown.",
+      "translation-failed": "The translation of the AI recap did not pass the checks, so the rule-based summary is shown."
+    },
+    "englishVersion": "AI version (English)",
+    "factsTitle": "What the AI was given",
+    "factsHint": "Only these numbers (no dates, notes or symptom details). Every number in the recap must appear here, or the draft is rejected.",
+    "privacy": "Experimental. The AI only rewords this summary: it does not assess your eyes, and its wording is checked before it is shown.",
+    "tpl": {
+      "headline": "{{sessions}} sessions and {{minutes}} minutes in the last 7 days",
+      "days": "You trained on {{days}} of the last 7 days (the week before: {{lastDays}}).",
+      "eyesBoth": "One-eye check points: you reported seeing {{left}}% on the left and {{right}}% on the right.",
+      "eyeLeft": "One-eye check points: you reported seeing {{left}}% of those shown to the left eye.",
+      "eyeRight": "One-eye check points: you reported seeing {{right}}% of those shown to the right eye.",
+      "noChecks": "No one-eye check points were shown in these sessions.",
+      "topModule": "Most of the time went to {{name}} ({{minutes}} minutes).",
+      "tipGlasses": "Before the next session, check that the glasses sit straight and the room light is steady.",
+      "tipSpread": "Short sessions spread over the week tend to be easier to keep up.",
+      "tipKeep": "Keep the same calm routine and take the breaks the app offers.",
+      "doubtful": "Sessions whose reports did not quite match: {{count}}. They did not raise the difficulty."
+    },
+    "aiBadge": "Written by on-device AI · checked against your numbers",
+    "aiBadgeRetry": "Written by on-device AI · checked against your numbers (second try)"
   }
 }

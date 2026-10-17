@@ -36,6 +36,11 @@
 - **Problem reports.** After an error the app can prepare a report (app version, browser, the
   recent error messages — no training data). You see all of it first; it is sent only if you
   choose to open it as a GitHub issue (public, under your GitHub account) or copy it yourself.
+- **On-device AI recap (optional).** If you click "Rewrite with on-device AI", the browser's
+  built-in model (Chrome) rewrites the weekly recap on your computer. It receives only a few
+  numbers about the last 7 days (sessions, minutes, share of check points seen); no dates,
+  notes or symptom details, and nothing is sent over the network by the app. The first time,
+  Chrome downloads the model from Google; that download is Chrome's, not the app's.
 - **VR.** In a headset the app uses WebXR on the device only; no camera images or tracking
   data are stored or sent.
 - **Service worker.** Used only to cache the app shell for offline use.

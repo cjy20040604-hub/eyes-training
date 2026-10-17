@@ -28,6 +28,7 @@ const SettingsPage = lazy(() =>
   import('./dashboard/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
 const QuickStart = lazy(() => import('./calibration/QuickStart').then((m) => ({ default: m.QuickStart })));
+const InsightLab = lazy(() => import('./insights/Lab').then((m) => ({ default: m.InsightLab })));
 const AccountPage = lazy(() => import('./sync/AccountPage').then((m) => ({ default: m.AccountPage })));
 const WeeklyCheck = lazy(() => import('./assessment/WeeklyCheck').then((m) => ({ default: m.WeeklyCheck })));
 const TrainingShell = lazy(() =>
@@ -231,6 +232,7 @@ export default function App() {
                 <Route path="/train/:moduleId" element={<TrainingRoute />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/report" element={<Report />} />
+                <Route path="/lab/insights" element={<InsightLab />} />
                 <Route path="/check" element={<WeeklyCheck />} />
                 <Route path="/quick-start" element={<QuickStart />} />
                 <Route path="/account" element={<AccountPage />} />

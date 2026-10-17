@@ -1530,3 +1530,47 @@ thead th {
 main:focus {
   outline: none;
 }
+
+/* Weekly recap (src/insights). The source tag says who wrote the text: rules or the AI. */
+.insight-source {
+  margin: 0 0 8px;
+}
+
+.tag {
+  display: inline-block;
+  font-size: var(--step--1);
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--ink-muted);
+}
+
+.tag.ai {
+  border-color: var(--cobalt);
+  color: var(--cobalt);
+  background: var(--cobalt-wash);
+}
+
+.insight-text h3 {
+  margin: 0 0 6px;
+  font-size: var(--step-1);
+}
+
+.insight-text ul {
+  margin: 0 0 8px;
+  padding-left: 1.2em;
+}
+
+.insight-facts {
+  max-height: 260px;
+  overflow: auto;
+  font-size: var(--step--1);
+  background: var(--paper);
+  padding: 8px;
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+}
+
+.insight-progress .progress {
+  max-width: 320px;
+}

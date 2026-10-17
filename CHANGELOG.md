@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Versions follow SemVer; releases are git tags `vX.Y.Z`.
 
+## [0.5.0] — 2026-10-18
+
+### Added
+
+- **Weekly recap with on-device AI (experimental).** The training summary opens with a recap of the last 7 days. A rule-based version is always shown; in a recent desktop Chrome the user can have it rewritten by the browser's built-in model, which runs on the computer (nothing is sent anywhere). Chinese users get an on-device translation, because the model writes only English for now.
+  - Facts first: the model gets only a small set of numbers (no dates, notes, ids or symptom details).
+  - Gate: weeks with double vision, moderate headaches or warning symptoms never reach the model; the app shows a fixed message pointing to a clinician.
+  - Guardrails: every draft (and every translation) is checked for diagnostic, treatment, outcome and over-training wording, length, and invented numbers; one corrective retry, then the rule-based recap.
+  - Evaluation: 16 fixed weeks with content checks; `#/lab/insights` runs them through the real model and reports first-try pass rate, pass after retry, fallback rate, rejections by rule and latency.
+
 ## [0.4.0] — 2026-10-17
 
 ### Changed

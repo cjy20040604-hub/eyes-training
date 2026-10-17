@@ -97,6 +97,13 @@ advice. Read [docs/SAFETY.md](docs/SAFETY.md) first.
 
   约 3 分钟的快速开始；可选的账号与端到端加密云同步（服务器只保存密文）；发送前可预览的一键问题报告；每个页面都经过 WCAG 2.1 AA 检查。
 
+- Weekly recap: a rule-based summary of the last 7 days that recent desktop Chrome can
+  rewrite with its built-in, on-device AI model. Only numbers go to the model; weeks with
+  warning symptoms are excluded; every draft is checked for diagnostic wording and invented
+  numbers before it is shown, with an evaluation page (`#/lab/insights`) for the real model.
+
+  每周回顾：规则生成过去 7 天的摘要，较新的桌面版 Chrome 可以用浏览器内置、在本机运行的 AI 模型改写。模型只拿到数字；有警示症状的一周不会调用模型；每份草稿在显示前都会检查是否有诊断性措辞和编造的数字；另有评测页（`#/lab/insights`）用真实模型跑固定用例。
+
 - Honest dose: the session timer only runs while the stimulus is drawn, and input-driven
   modules pause after a minute without input.
 

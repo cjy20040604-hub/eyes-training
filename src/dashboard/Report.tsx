@@ -9,6 +9,7 @@ import { pxToPrismDiopters, round } from '../engine/units';
 import { getModule } from '../modules/registry';
 import { Banner, Button, Card, Segmented } from '../ui';
 import { CheckTrends, assessmentsToCsv } from '../assessment/CheckTrends';
+import { InsightCard } from '../insights/InsightCard';
 import { ConsistencySection } from './ConsistencySection';
 import { TrendsSection } from './TrendsSection';
 import { firstAndLatest, summarize } from './trends';
@@ -152,6 +153,8 @@ export function Report() {
         </div>
       </div>
       <Banner tone="info">{t('report.disclaimer')}</Banner>
+
+      <InsightCard data={all.data ?? null} />
 
       <Card title={t('report.setupTitle')}>
         {calibration ? (
