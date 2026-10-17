@@ -135,12 +135,20 @@ function Layout({ children }: { children: ReactNode }) {
   const settings = useSettings();
   const [recovered, setRecovered] = useState(0);
   useEffect(() => {
+    // The recovery may settle after unmount (tests tear the page down quickly); ignore it then.
+    let active = true;
     void ensureSchemaVersion();
     recoverInProgressSessions()
-      .then(setRecovered)
-      .catch(() => setRecovered(0))
-      // Signed in to cloud sync on this device: bring this device up to date.
-      .finally(() => void autoSync());
+      .catch(() => 0)
+      .then((n) => {
+        if (!active) return;
+        setRecovered(n);
+        // Signed in to cloud sync on this device: bring this device up to date.
+        void autoSync();
+      });
+    return () => {
+      active = false;
+    };
   }, []);
   const locked = settings.trainingLock.locked;
   return (
