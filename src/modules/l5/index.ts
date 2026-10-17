@@ -216,6 +216,8 @@ export class L5Instance implements ModuleInstance {
   }
 
   resize(width: number, height: number): void {
+    // Observers can report the same size again; only a real change invalidates the pattern.
+    if (width === this.ctx.width && height === this.ctx.height) return;
     this.ctx = { ...this.ctx, width, height };
     this.image = null;
     if (this.phase === 'show') {

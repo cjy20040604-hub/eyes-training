@@ -129,3 +129,55 @@ export async function decryptText(text: string, passphrase: string): Promise<str
     throw new WrongPassphraseError();
   }
 }
+
+// ---- Sync: a key derived once per device, reused for every upload ----
+
+export const SYNC_MIN_PASSPHRASE = 10;
+
+export function randomSaltBase64(): string {
+  return toBase64(crypto.getRandomValues(new Uint8Array(16)));
+}
+
+/** The AES key for cloud sync. Not extractable: it can be kept on the device, never read back. */
+export async function deriveSyncKey(
+  passphrase: string,
+  saltBase64: string,
+  iterations = DEFAULT_ITERATIONS,
+): Promise<CryptoKey> {
+  return deriveKey(passphrase, fromBase64(saltBase64), iterations);
+}
+
+async function gzip(text: string): Promise<Uint8Array> {
+  const stream = new Response(text).body!.pipeThrough(new CompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function gunzip(bytes: Uint8Array): Promise<string> {
+  const stream = new Response(bytes as BodyInit).body!.pipeThrough(new DecompressionStream('gzip'));
+  return new Response(stream).text();
+}
+
+/** gzip, then AES-GCM with a fresh IV. */
+export async function sealWithKey(key: CryptoKey, plain: string): Promise<{ iv: string; data: string }> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const cipher = await subtle().encrypt(
+    { name: 'AES-GCM', iv: iv as BufferSource },
+    key,
+    (await gzip(plain)) as BufferSource,
+  );
+  return { iv: toBase64(iv), data: toBase64(new Uint8Array(cipher)) };
+}
+
+export async function openWithKey(key: CryptoKey, sealed: { iv: string; data: string }): Promise<string> {
+  let plain: ArrayBuffer;
+  try {
+    plain = await subtle().decrypt(
+      { name: 'AES-GCM', iv: fromBase64(sealed.iv) as BufferSource },
+      key,
+      fromBase64(sealed.data) as BufferSource,
+    );
+  } catch {
+    throw new WrongPassphraseError();
+  }
+  return gunzip(new Uint8Array(plain));
+}

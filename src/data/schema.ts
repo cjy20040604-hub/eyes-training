@@ -88,6 +88,12 @@ export const calibrationProfileSchema = z.object({
     trials: z.number().int().nonnegative(),
   }),
   postureNote: shortText,
+  /**
+   * 'quick': the 3-minute quick start (screen size and distance estimated, no Worth 4-dot or
+   * contrast staircase). Good enough for L1–L3; modules that depend on exact Δ / arcsec
+   * conversion, and the weekly self-check, need a 'full' calibration.
+   */
+  quality: z.enum(['quick', 'full']).default('full'),
 });
 export type CalibrationProfile = z.infer<typeof calibrationProfileSchema>;
 
@@ -315,7 +321,7 @@ export const exportBundleSchema = z.object({
 export type ExportBundle = z.infer<typeof exportBundleSchema>;
 
 /** The disclaimer text version. Bump to force re-acknowledgement when copy changes. */
-export const DISCLAIMER_VERSION = 1;
+export const DISCLAIMER_VERSION = 2;
 
 export const DEFAULT_CAPS: Caps = {
   sessionMaxMinutes: 20,

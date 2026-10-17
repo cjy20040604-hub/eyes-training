@@ -277,6 +277,7 @@ export const l1Module: ModuleDefinition = {
   implemented: true,
   requiresInput: true,
   vrReady: true,
+  ownCatchTrials: true,
   create: (ctx) => new L1Instance(ctx),
   assess: assessL1,
 };

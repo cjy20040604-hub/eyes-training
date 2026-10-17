@@ -8,3 +8,4 @@ test-results
 .DS_Store
 *.local
 *.tsbuildinfo
+*.zip

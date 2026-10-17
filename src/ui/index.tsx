@@ -123,16 +123,20 @@ export function Progress({
   value,
   max = 1,
   tone,
+  label,
 }: {
   value: number;
   max?: number;
   tone?: 'warn' | 'danger';
+  /** Accessible name: what this bar measures (screen readers announce it). */
+  label: string;
 }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
   return (
     <div
       className={`progress ${tone ?? ''}`}
       role="progressbar"
+      aria-label={label}
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}

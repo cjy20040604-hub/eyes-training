@@ -33,6 +33,7 @@ export function makeCalibration(over: Partial<CalibrationProfile> = {}): Calibra
     },
     contrastBalance: { dominantEye: 'right', balanceRatio: 0.5, trials: 8 },
     postureNote: '',
+    quality: 'full',
     ...over,
   };
 }

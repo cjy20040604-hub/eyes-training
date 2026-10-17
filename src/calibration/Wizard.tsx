@@ -182,6 +182,7 @@ export function CalibrationWizard() {
         trials: stair.trials.length,
       },
       postureNote: sanitizeText(postureNote, 500),
+      quality: 'full',
     };
     await getDb().calibrations.put(profile);
     settings.setActiveCalibration(profile.id);
@@ -260,6 +261,7 @@ export function CalibrationWizard() {
       {current === 'glasses' ? (
         <Card title={t('calibration.steps.glasses')}>
           <p>{t('calibration.glasses.intro')}</p>
+          <p className="hint">{t('calibration.glasses.cvdHint')}</p>
           <CalibCanvas options={identityOptions} draw={drawGlasses} testId="glasses-canvas" />
           <Field label={t('calibration.glasses.question')}>
             <Segmented

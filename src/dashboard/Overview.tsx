@@ -99,7 +99,13 @@ export function Overview() {
     const doneMinutes = sessions
       .filter((s) => s.moduleId === def.id && s.day === today)
       .reduce((a, s) => a + s.actualMinutes, 0);
-    const gate = evaluateGate(def.id, { settings, sessions, checks, disclaimerVersion: DISCLAIMER_VERSION });
+    const gate = evaluateGate(def.id, {
+      settings,
+      sessions,
+      checks,
+      disclaimerVersion: DISCLAIMER_VERSION,
+      calibrationQuality: calibration?.quality,
+    });
     const enabled = plan.enabled && def.implemented;
     const plannedMinutes = enabled ? plan.minutes : 0;
     return {
@@ -118,6 +124,7 @@ export function Overview() {
     'needs-distinct-days',
     'recent-stop',
     'clinician-agreement',
+    'needs-full-calibration',
   ];
   const stageLocked = (r: RowModel) =>
     !r.def.implemented || r.gate.reasons.some((x) => STAGE_REASONS.includes(x));
@@ -157,6 +164,13 @@ export function Overview() {
         </Banner>
       ) : null}
       <BackupReminder sessions={sessions} />
+      {calibration?.quality === 'quick' ? (
+        <div data-testid="quick-banner">
+          <Banner tone="info" title={t('quick.bannerTitle')}>
+            {t('quick.bannerBody')} <Link to="/calibration">{t('quick.bannerLink')}</Link>
+          </Banner>
+        </div>
+      ) : null}
       <section className="today" aria-labelledby="today-title">
         <div>
           <p className="date">{longDate}</p>
@@ -168,7 +182,11 @@ export function Overview() {
         <div className="next">
           {!calibration && !all.loading ? (
             <>
-              <Link className="btn primary" to="/calibration" data-testid="start-calibration">
+              <Link className="btn primary" to="/quick-start" data-testid="start-quick">
+                {t('quick.start')}
+              </Link>
+              <span className="hint">{t('quick.startHint')}</span>
+              <Link className="btn" to="/calibration" data-testid="start-calibration">
                 {t('overview.setUpCalibration')}
               </Link>
               <span className="hint">{t('overview.setUpHint')}</span>
@@ -373,13 +391,19 @@ export function Overview() {
                       {[
                         r.gate.reasons.includes('recent-stop') ? t('gate.recent-stop') : '',
                         r.gate.reasons.includes('clinician-agreement') ? t('gate.clinician-agreement') : '',
+                        r.gate.reasons.includes('needs-full-calibration')
+                          ? t('gate.needs-full-calibration')
+                          : '',
                       ]
                         .filter(Boolean)
                         .join(' ') || t('overview.unlocksWith')}
                     </span>
                     {needsSessions ? (
                       <div className="unlock">
-                        <Progress value={fraction} />
+                        <Progress
+                          value={fraction}
+                          label={t('overview.unlockLabel', { name: t(`modules.${r.def.id}.name`) })}
+                        />
                         <span>
                           {t('overview.unlockProgress', {
                             sessions: r.gate.stableSessions,

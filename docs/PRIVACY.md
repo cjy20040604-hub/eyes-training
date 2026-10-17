@@ -26,6 +26,16 @@
   free space). This is a browser setting; nothing is sent anywhere.
 - **Reminders.** The calendar reminder is a file you download and import into your own
   calendar; the app does not send notifications.
+- **Cloud sync (optional, off unless configured and you sign in).** Your email address and
+  a password hash are handled by Supabase for sign-in. Your training data is compressed and
+  encrypted on your device with a separate sync passphrase (AES-256-GCM, PBKDF2-SHA-256 with
+  600 000 rounds) before upload; the server stores only that ciphertext, a random salt, a
+  version number, the time and a device label such as "Chrome · Windows". Without your sync
+  passphrase nobody can read it. Signing out keeps your local data; "Delete cloud data"
+  removes the encrypted copy. Until you sign in, the app sends nothing.
+- **Problem reports.** After an error the app can prepare a report (app version, browser, the
+  recent error messages — no training data). You see all of it first; it is sent only if you
+  choose to open it as a GitHub issue (public, under your GitHub account) or copy it yourself.
 - **VR.** In a headset the app uses WebXR on the device only; no camera images or tracking
   data are stored or sent.
 - **Service worker.** Used only to cache the app shell for offline use.

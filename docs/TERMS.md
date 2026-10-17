@@ -1,12 +1,12 @@
 # Terms of use
 
-1. **Not medical advice, treatment or a medical device.** This software is a general
-   wellness / personal-experiment tool. It does not diagnose, treat, cure, mitigate or
-   prevent any disease or condition, and nothing in it replaces the advice of an
-   ophthalmologist, orthoptist or other qualified clinician.
-2. **Adults only, with clinician awareness.** It is intended for adults who have discussed
-   its use with their eye-care clinician. It is not for children without direct clinician
-   supervision.
+1. **Personal and educational use only; not a medical device.** This software lets adults
+   explore how their two eyes work together and keep their own records. It does not
+   diagnose, treat, cure, mitigate or prevent any disease or condition; its numbers are
+   self-observations on a screen, not clinical measurements; and nothing in it replaces the
+   advice of an ophthalmologist, orthoptist or other qualified clinician.
+2. **Adults only.** It is intended for adults. If you have an eye condition, discuss its use
+   with your eye-care clinician first. It is not for children.
 3. **Stop on symptoms.** Stop immediately and seek medical advice for double vision that
    persists, headache, nausea, a new or increased eye deviation, a drooping eyelid, unequal
    pupils, or any neurological symptom. The software will disable itself after a red-flag

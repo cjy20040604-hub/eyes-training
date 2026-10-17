@@ -143,7 +143,7 @@ test('the video module plays a local file and refuses to start without one', asy
 test('the clinician report summarizes adherence, measures and trends', async ({ page }) => {
   await setup(page);
   await page.getByRole('link', { name: 'Report' }).click();
-  await expect(page.getByRole('heading', { name: 'Summary for your clinician' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Training summary' })).toBeVisible();
   await expect(page.getByTestId('report-adherence')).toContainText('3 of 30 days');
   await expect(page.getByTestId('report-adherence')).toContainText('6 (6 completed, 0 stopped)');
   await expect(page.getByTestId('report-measures')).toContainText('perceived offset');

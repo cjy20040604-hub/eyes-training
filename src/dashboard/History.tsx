@@ -5,6 +5,7 @@ import { FREQUENCY_LABELS } from '../data/schema';
 import { useSettings } from '../data/settingsStore';
 import { getModule } from '../modules/registry';
 import { CheckTrends } from '../assessment/CheckTrends';
+import { ConsistencySection } from './ConsistencySection';
 import { TrendsSection } from './TrendsSection';
 import { Button, Card } from '../ui';
 
@@ -25,6 +26,9 @@ export function History() {
           <CheckTrends assessments={all.data?.assessments ?? []} />
         </Card>
       ) : null}
+      <Card title={t('consistency.title')}>
+        <ConsistencySection sessions={all.data?.sessions ?? []} />
+      </Card>
       <Card title={t('trends.title')}>
         <TrendsSection sessions={all.data?.sessions ?? []} checks={checks} dailyCap={dailyCap} />
       </Card>

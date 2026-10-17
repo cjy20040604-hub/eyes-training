@@ -5,8 +5,10 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Overview } from './dashboard/Overview';
 import { RedFlagPage } from './dashboard/RedFlagPage';
 import { ensureSchemaVersion } from './data/db';
+import { autoSync } from './sync/config';
 import { logError } from './data/errorLog';
 import { disclaimerAccepted, useSettings } from './data/settingsStore';
+import { ErrorNotice, ReportProblemButton } from './dashboard/ReportProblem';
 import { DisclaimerScreen } from './safety/DisclaimerScreen';
 import { recoverInProgressSessions } from './safety/session';
 import { Banner, Button, Footer } from './ui';
@@ -25,6 +27,8 @@ const Report = lazy(() => import('./dashboard/Report').then((m) => ({ default: m
 const SettingsPage = lazy(() =>
   import('./dashboard/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
+const QuickStart = lazy(() => import('./calibration/QuickStart').then((m) => ({ default: m.QuickStart })));
+const AccountPage = lazy(() => import('./sync/AccountPage').then((m) => ({ default: m.AccountPage })));
 const WeeklyCheck = lazy(() => import('./assessment/WeeklyCheck').then((m) => ({ default: m.WeeklyCheck })));
 const TrainingShell = lazy(() =>
   import('./safety/TrainingShell').then((m) => ({ default: m.TrainingShell })),
@@ -86,7 +90,10 @@ function CrashScreen({ error }: { error: Error }) {
       <Banner tone="danger" title={t('app.errorTitle')}>
         {t('app.errorBody')}
         <pre style={{ whiteSpace: 'pre-wrap' }}>{error.message}</pre>
-        <Button onClick={() => window.location.reload()}>{t('app.reload')}</Button>
+        <span className="row">
+          <Button onClick={() => window.location.reload()}>{t('app.reload')}</Button>
+          <ReportProblemButton />
+        </span>
       </Banner>
     </div>
   );
@@ -131,11 +138,24 @@ function Layout({ children }: { children: ReactNode }) {
     void ensureSchemaVersion();
     recoverInProgressSessions()
       .then(setRecovered)
-      .catch(() => setRecovered(0));
+      .catch(() => setRecovered(0))
+      // Signed in to cloud sync on this device: bring this device up to date.
+      .finally(() => void autoSync());
   }, []);
   const locked = settings.trainingLock.locked;
   return (
     <div className="app-shell">
+      <a
+        className="skip-link"
+        href="#main"
+        onClick={(e) => {
+          // Hash routing: move focus without changing the route.
+          e.preventDefault();
+          document.getElementById('main')?.focus();
+        }}
+      >
+        {t('app.skip')}
+      </a>
       <header className="app-header">
         <NavLink to="/" className="brand" end>
           <FusionMark />
@@ -149,11 +169,13 @@ function Layout({ children }: { children: ReactNode }) {
           <NavLink to="/history">{t('nav.history')}</NavLink>
           <NavLink to="/report">{t('nav.report')}</NavLink>
           <NavLink to="/settings">{t('nav.settings')}</NavLink>
+          <NavLink to="/account">{t('nav.account')}</NavLink>
           {locked ? <NavLink to="/red-flag">{t('nav.redFlag')}</NavLink> : null}
         </nav>
       </header>
-      <main className="app-main">
+      <main className="app-main" id="main" tabIndex={-1}>
         <UpdateBanner />
+        <ErrorNotice />
         {recovered > 0 ? <Banner tone="warn">{t('app.recovered', { count: recovered })}</Banner> : null}
         {children}
       </main>
@@ -202,6 +224,8 @@ export default function App() {
                 <Route path="/history" element={<History />} />
                 <Route path="/report" element={<Report />} />
                 <Route path="/check" element={<WeeklyCheck />} />
+                <Route path="/quick-start" element={<QuickStart />} />
+                <Route path="/account" element={<AccountPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/red-flag" element={<RedFlagPage />} />
                 <Route path="*" element={<Overview />} />

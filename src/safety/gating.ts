@@ -22,7 +22,11 @@ export const MODULE_GATES: Record<ModuleId, GateRequirement> = {
   reading: 'stable-l1-l2',
 };
 
+/** Modules whose stimuli depend on an exact Δ / arcsec conversion: not with a quick calibration. */
+export const NEEDS_FULL_CALIBRATION: ReadonlySet<ModuleId> = new Set<ModuleId>(['l4', 'l5', 'brock']);
+
 export type GateReason =
+  | 'needs-full-calibration'
   | 'training-locked'
   | 'disclaimer'
   | 'no-calibration'
@@ -50,6 +54,8 @@ export interface GateContext {
   /** All symptom checks, any order. */
   checks: SymptomCheck[];
   disclaimerVersion: number;
+  /** Quality of the active calibration ('quick' from the quick start). */
+  calibrationQuality?: 'quick' | 'full';
 }
 
 export function stableCoreSessions(sessions: SessionRecord[], checks: SymptomCheck[]): SessionRecord[] {
@@ -83,6 +89,8 @@ export function evaluateGate(moduleId: ModuleId, ctx: GateContext): GateResult {
     if (recent.some((s) => s.events.some((e) => e.type === 'stop'))) reasons.push('recent-stop');
   }
   if (req === 'stable-and-clinician' && !ctx.settings.clinicianAgreement) reasons.push('clinician-agreement');
+  if (ctx.calibrationQuality === 'quick' && NEEDS_FULL_CALIBRATION.has(moduleId))
+    reasons.push('needs-full-calibration');
 
   return {
     unlocked: reasons.length === 0,

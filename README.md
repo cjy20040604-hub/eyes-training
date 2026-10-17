@@ -9,16 +9,18 @@ Works offline after the first visit; red-cyan glasses are needed for training.
 
 首次打开后可离线使用；训练需要红青立体眼镜。
 
-A browser-based, fully offline, personal wellness / self-experiment tool for exploring
-simultaneous perception and fusion with red-cyan anaglyph glasses, built for one adult
-with paralytic (incomitant) strabismus under clinical supervision.
+A browser-based, offline-first tool **for personal and educational use**: adults can explore
+how their two eyes work together (simultaneous perception, fusion, depth) with red-cyan
+anaglyph glasses, and keep their own records. It was first built for one adult with
+paralytic (incomitant) strabismus.
 
-一款基于浏览器、可完全离线运行的个人健康 / 自我探索工具，借助红青立体眼镜探索双眼同时知觉与融合，面向在临床指导下使用的成年麻痹性（非共同性）斜视用户。
+一款基于浏览器、离线优先的**个人与教育用途**工具：成年人可以借助红青立体眼镜，了解自己的两只眼睛如何协同工作（同时知觉、融合、深度），并保存自己的记录。它最初是为一位成年麻痹性（非共同性）斜视用户制作的。
 
-**This is not medical treatment and not a medical device.** It does not diagnose,
-treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) first.
+**Not a medical device. It does not diagnose, treat, cure or prevent any condition, and its
+numbers are not clinical measurements.** If you have an eye condition, follow your clinician's
+advice. Read [docs/SAFETY.md](docs/SAFETY.md) first.
 
-**这不是医疗治疗，也不是医疗器械。** 它不诊断、不治疗、不治愈、不预防任何疾病。使用前请先阅读 [docs/SAFETY.md](docs/SAFETY.md)。
+**本应用不是医疗器械。它不诊断、不治疗、不治愈、不预防任何疾病，其中的数字也不是临床测量结果。** 如有眼部疾病，请遵从医生的建议。使用前请先阅读 [docs/SAFETY.md](docs/SAFETY.md)。
 
 ## What it does · 功能
 
@@ -84,6 +86,17 @@ treat, cure or prevent any condition. Read [docs/SAFETY.md](docs/SAFETY.md) firs
 
   保住数据、坚持训练：加密备份（AES-256，密码保护），申请持久存储，备份提醒，可选的自动备份到文件夹（Chrome / Edge），按训练天数计的每周目标，日历提醒（.ics），以及未训练日的应用图标角标。
 
+- Honest reports: one-eye check points (◇) in every module show, per eye, what got
+  through; sessions whose reports do not match never raise the difficulty.
+
+  报告是否可信：每个模块都有只给一只眼看的验证点（◇），按眼统计看到的比例；报告对不上的训练不会提高难度。
+
+- Quick start in about 3 minutes; optional account with end-to-end encrypted cloud sync
+  (the server stores only ciphertext); one-click problem reports you review before sending;
+  WCAG 2.1 AA checks of every page.
+
+  约 3 分钟的快速开始；可选的账号与端到端加密云同步（服务器只保存密文）；发送前可预览的一键问题报告；每个页面都经过 WCAG 2.1 AA 检查。
+
 - Honest dose: the session timer only runs while the stimulus is drawn, and input-driven
   modules pause after a minute without input.
 
@@ -143,9 +156,11 @@ is embedded in another site (clickjacking defence). HTTPS is required for the se
 
 Everything stays on the device: `localStorage` for settings, IndexedDB for sessions and
 calibrations. There are no network calls, analytics or trackers, enforced by a strict CSP
-and asserted in the e2e tests. See [docs/PRIVACY.md](docs/PRIVACY.md).
+and asserted in the e2e tests. The only exception is optional cloud sync, which uploads an
+end-to-end encrypted copy after you sign in ([docs/SYNC-SETUP.md](docs/SYNC-SETUP.md)). See
+[docs/PRIVACY.md](docs/PRIVACY.md).
 
-所有数据只保存在本设备：设置存在 `localStorage`，训练记录和校准档案存在 IndexedDB。没有网络请求、统计分析或追踪器，这一点由严格的内容安全策略保证，并在端到端测试中断言。详见 [docs/PRIVACY.md](docs/PRIVACY.md)。
+所有数据只保存在本设备：设置存在 `localStorage`，训练记录和校准档案存在 IndexedDB。没有网络请求、统计分析或追踪器，这一点由严格的内容安全策略保证，并在端到端测试中断言。唯一的例外是可选的云同步：登录后会上传一份端到端加密的副本（见 [docs/SYNC-SETUP.md](docs/SYNC-SETUP.md)）。详见 [docs/PRIVACY.md](docs/PRIVACY.md)。
 
 ## How this was built · 开发方式
 

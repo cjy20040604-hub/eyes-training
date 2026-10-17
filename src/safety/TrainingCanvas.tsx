@@ -16,8 +16,10 @@ import {
 } from '../engine/renderer';
 import { WebXRRenderer } from '../engine/renderer/xr';
 import { transformToMatrix } from '../engine/affine';
+import { CatchTrials } from '../engine/catchTrials';
 import { TransitionGuard } from '../engine/transitionGuard';
 import { degreesToPx, type ScreenGeometry } from '../engine/units';
+import { stimulusArea } from '../modules/common';
 import type { HudState, ModuleConfig, ModuleDefinition, ModuleInstance } from '../modules/types';
 
 /** Page coordinates of a module's key objects, as exposed to end-to-end tests. */
@@ -50,6 +52,8 @@ export interface TrainingCanvasProps {
   onIdle?: () => void;
   /** VR headset presentation (WebXR renderer). Texts are already translated. */
   vr?: TrainingVrProps;
+  /** Receives a function for the "I saw the ◇" button (one-eye-only check points). */
+  catchRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export interface TrainingVrProps {
@@ -151,7 +155,13 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       random: Math.random,
     });
     moduleRef.current = module;
-    p.metricsRef.current = () => module.metrics();
+    // One-eye-only check points for every module except those with their own (L1), and not
+    // in VR (the headset has no spare button for them).
+    const catches =
+      p.def.ownCatchTrials || (p.rendererId === 'webxr' && p.vr?.enabled)
+        ? null
+        : new CatchTrials(Math.random);
+    p.metricsRef.current = () => ({ ...module.metrics(), ...(catches?.metrics() ?? {}) });
     const base = baseRenderOptions(p.calibration, p.cyclotorsionEnabled);
 
     let started = false;
@@ -199,6 +209,38 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
         c.restore();
       }
     };
+    /** Where the catch diamond sits, in eye-layer CSS px. */
+    const catchPoint = () => {
+      const t = catches?.current;
+      if (!t) return null;
+      const a = stimulusArea({ width, height });
+      return { eye: t.eye, x: a.cx - a.halfW + t.u * 2 * a.halfW, y: a.cy - a.halfH + t.v * 2 * a.halfH };
+    };
+    const drawCatch = () => {
+      const pt = catchPoint();
+      if (!pt) return;
+      const layer = layers[pt.eye];
+      const c = layer.ctx;
+      c.save();
+      c.setTransform(layer.dpr, 0, 0, layer.dpr, 0, 0);
+      c.strokeStyle = 'rgba(255,255,255,0.95)';
+      c.lineWidth = 3;
+      c.beginPath();
+      c.moveTo(pt.x, pt.y - 11);
+      c.lineTo(pt.x + 11, pt.y);
+      c.lineTo(pt.x, pt.y + 11);
+      c.lineTo(pt.x - 11, pt.y);
+      c.closePath();
+      c.stroke();
+      c.restore();
+    };
+    const respondCatch = () => {
+      if (!catches || !runningRef.current) return;
+      noteInput();
+      const result = catches.respond();
+      propsRef.current.onEvent('probe', { catch: result });
+    };
+    if (p.catchRef) p.catchRef.current = respondCatch;
     const tick = (dt: number, now: number) => {
       if (!runningRef.current) {
         wasRunning = false;
@@ -223,6 +265,10 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       }
       module.update(dt, now);
       module.draw(layers);
+      if (catches) {
+        catches.update(dt, () => guard.request(now, 'catch'));
+        drawCatch();
+      }
       if (xr) vrText(propsRef.current.vr?.hint ?? '', 'bottom', false);
       if (propsRef.current.frameClockRef) propsRef.current.frameClockRef.current = performance.now();
       renderer.composite(
@@ -275,6 +321,11 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
       if (!runningRef.current) return;
       noteInput();
       const key = e.key.toLowerCase();
+      if (key === 'c' && catches) {
+        e.preventDefault();
+        if (!e.repeat) respondCatch();
+        return;
+      }
       if (key === ' ' || key === 'enter') {
         e.preventDefault();
         if (!e.repeat) module.input({ type: 'action' });
@@ -369,7 +420,9 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
         const rect = canvas.getBoundingClientRect();
         const opts = module.renderOverrides(base);
         const out: ProbeSnapshot = {};
-        for (const [name, pt] of Object.entries(module.probe?.() ?? {})) {
+        const cp = catchPoint();
+        const points = { ...(module.probe?.() ?? {}), ...(cp ? { catch: cp } : {}) };
+        for (const [name, pt] of Object.entries(points)) {
           const m = transformToMatrix(opts.transforms[pt.eye], width / 2, height / 2);
           out[name] = {
             eye: pt.eye,
@@ -407,6 +460,7 @@ export function TrainingCanvas(props: TrainingCanvasProps) {
     }
     return () => {
       xrRef.current = null;
+      if (p.catchRef) p.catchRef.current = null;
       if (import.meta.env.MODE === 'e2e') delete (window as ProbeWindow).__bvProbe;
       loop.dispose();
       ro.disconnect();

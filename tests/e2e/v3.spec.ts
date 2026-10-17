@@ -44,7 +44,9 @@ async function download(page: Page, click: () => Promise<void>): Promise<{ name:
 test('weekly check: four measurements, results, and the report', async ({ page }) => {
   await unlocked(page);
   await page.goto('/#/');
-  await expect(page.getByTestId('weekly-check-card')).toContainText('first two checks set your baseline');
+  await expect(page.getByTestId('weekly-check-card')).toContainText(
+    'first two self-checks set your baseline',
+  );
   await page.getByTestId('start-weekly-check').click();
   await page.getByTestId('symptom-submit').click();
 
@@ -70,12 +72,12 @@ test('weekly check: four measurements, results, and the report', async ({ page }
       .catch(() => {});
   }
   await page.getByTestId('symptom-submit').click();
-  await expect(page.getByTestId('check-result')).toContainText('Perceived misalignment');
+  await expect(page.getByTestId('check-result')).toContainText('Alignment setting');
 
   await page.goto('/#/');
   await expect(page.getByTestId('weekly-check-card')).toContainText('Next check in 7 day(s)');
   await page.goto('/#/report');
-  await expect(page.getByTestId('report-checks')).toContainText('Stereo threshold');
+  await expect(page.getByTestId('report-checks')).toContainText('Finest depth seen');
   await expect(page.getByTestId('chart-check-alignment').locator('circle')).toHaveCount(1);
   await page.goto('/#/history');
   await expect(page.getByTestId('check-trends')).toBeVisible();

@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here. Versions follow SemVer; releases are git tags `vX.Y.Z`.
 
+## [0.4.0] — 2026-10-17
+
+### Changed
+
+- **Positioning: personal and educational use only.** Wording across the app, README and docs no longer diagnoses or measures: Worth 4-dot answers are described ("3 dots: only the right eye's dots") instead of labelled ("left eye suppressed"); the weekly check is a "weekly self-check"; "stereo threshold" is "finest depth seen"; the report is a "training summary" that states it is not a clinical measurement. The disclaimer version was bumped, so it is shown again once.
+- Dependencies: Vitest 4.1.11 (0 known vulnerabilities in all dependencies). Vitest 4 counts branch coverage more strictly; the branch floors were reset to the new baseline.
+
+### Added
+
+- **One-eye check points in every module**: small diamonds ◇ appear to one eye at a time (L1 keeps its chick); C or the on-screen button reports them. Per session and over time the app shows, per eye, how many were seen and how many presses had no diamond.
+- **Report consistency**: a session is "doubtful" when presses come without a diamond, or when its own results needed both eyes but one eye's diamonds were mostly missed. Doubtful sessions never raise the difficulty. Shown in the session summary, History and the report.
+- **Quick start** (about 3 minutes): device type and distance (screen size estimated), the glasses check and an optional prism value, then the first session. Quick profiles are marked; L4, L5, the Brock string and the weekly self-check need the full calibration.
+- **Account and end-to-end encrypted cloud sync** (optional, Supabase): sign in on several devices; data is gzip-compressed and encrypted on the device (AES-256-GCM, key from a separate sync passphrase, PBKDF2-SHA-256 600 000 rounds) before upload; record-by-record merge and optimistic versioning between devices. Disabled, with no network requests, until a project is configured (`docs/SYNC-SETUP.md`, `supabase/schema.sql`).
+- **One-click problem reports**: after an error the app offers a report; the user sees exactly what it contains (version, browser, recent errors — no training data) and chooses to open a pre-filled GitHub issue or copy it. Nothing is sent automatically.
+- **Accessibility**: axe-core WCAG 2.1 A/AA scan of every page in CI, a skip link, named progress bars, keyboard checks; a colour-vision note in the glasses step; `docs/ACCESSIBILITY.md`.
+
 ## [0.3.0] — 2026-10-16
 
 ### Added

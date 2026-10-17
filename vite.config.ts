@@ -1,8 +1,9 @@
-/// <reference types="vitest" />
-import { defineConfig } from 'vite';
+/// <reference types="vitest/config" />
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
@@ -13,11 +14,38 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 // only asset URLs depend on this.
 const base = process.env.VITE_BASE ?? '/';
 
-export default defineConfig({
+/**
+ * Content Security Policy for optional cloud sync: when a Supabase project is configured
+ * at build time, allow requests to that one origin (and nothing else). Without it the
+ * policy stays connect-src 'self', and the app makes no network requests.
+ */
+function cspConnectSrc(origin: string | null): Plugin {
+  const widen = (text: string) =>
+    origin ? text.replace("connect-src 'self'", `connect-src 'self' ${origin}`) : text;
+  return {
+    name: 'csp-connect-src',
+    transformIndexHtml: (html) => widen(html),
+    writeBundle(options) {
+      const headers = join(options.dir ?? 'dist', '_headers');
+      if (origin && existsSync(headers)) writeFileSync(headers, widen(readFileSync(headers, 'utf8')));
+    },
+  };
+}
+
+function originOf(url: string | undefined): string | null {
+  try {
+    return url ? new URL(url).origin : null;
+  } catch {
+    return null;
+  }
+}
+
+export default defineConfig(({ mode }) => ({
   base,
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [
     react(),
+    cspConnectSrc(originOf({ ...loadEnv(mode, process.cwd(), 'VITE_'), ...process.env }.VITE_SUPABASE_URL)),
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png'],
@@ -25,7 +53,7 @@ export default defineConfig({
         name: 'Binocular Vision Explorer',
         short_name: 'BinoVision',
         description:
-          'Personal wellness tool for exploring simultaneous perception and fusion with anaglyph glasses. Not a medical device.',
+          'For personal and educational use: explore how your two eyes work together with anaglyph glasses. Not a medical device; does not diagnose or treat.',
         display: 'standalone',
         start_url: base,
         scope: base,
@@ -82,9 +110,12 @@ export default defineConfig({
       include: ['src/**'],
       exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/**/types.ts'],
       reporter: ['text-summary', 'html', 'json-summary'],
+      // Vitest 4 maps v8 coverage onto the AST, which counts branches more strictly than
+      // Vitest 3 did (the same tests went from 82% to 62% branches), so the branch floors
+      // were reset to the new baseline when upgrading.
       thresholds: {
         statements: 68,
-        branches: 80,
+        branches: 60,
         functions: 64,
         lines: 68,
         'src/safety/{caps,gating,symptomRules,sessionMachine,session}.ts': {
@@ -94,8 +125,8 @@ export default defineConfig({
           lines: 95,
         },
         'src/engine/*.ts': { statements: 90, branches: 80, functions: 85, lines: 90 },
-        'src/data/**': { statements: 80, branches: 75, functions: 65, lines: 80 },
+        'src/data/**': { statements: 80, branches: 70, functions: 65, lines: 80 },
       },
     },
   },
-});
+}));

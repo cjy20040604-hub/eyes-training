@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import type { ModuleId, ModuleProgress } from '../data/schema';
+import { sessionCatch, sessionInconsistencies } from '../data/consistency';
+import type { ModuleId, ModuleProgress, SessionRecord } from '../data/schema';
 import type { FlashReport } from '../engine/flashDetector';
 import type { ProgressChange } from '../modules/adaptive';
 import type { HudState, ModuleDefinition } from '../modules/types';
@@ -54,6 +55,8 @@ export interface TrainingHudProps {
   allowedMinutes: number;
   stopDisabled: boolean;
   onStop: () => void;
+  /** One-eye-only check points: "I saw the ◇" (absent when the module has its own). */
+  onCatch?: () => void;
 }
 
 export function TrainingHud(props: TrainingHudProps) {
@@ -77,15 +80,27 @@ export function TrainingHud(props: TrainingHudProps) {
         </span>
         {hud.roundProgress !== null ? (
           <div style={{ width: 90 }} title={t('training.holdProgress')}>
-            <Progress value={hud.roundProgress} />
+            <Progress value={hud.roundProgress} label={t('training.holdProgress')} />
           </div>
         ) : null}
         <div style={{ width: 120 }} title={t('training.sessionProgress')}>
-          <Progress value={pct} />
+          <Progress value={pct} label={t('training.sessionProgress')} />
         </div>
+        {props.onCatch ? (
+          <button
+            type="button"
+            className="btn small catch-button"
+            onClick={props.onCatch}
+            data-testid="catch-button"
+            aria-keyshortcuts="C"
+          >
+            {t('training.catchButton')}
+          </button>
+        ) : null}
       </div>
       <div className="training-help" data-testid="training-help">
         {t(`modules.${props.moduleId}.controls`)}
+        {props.onCatch ? ` ${t('training.catchHelp')}` : ''}
       </div>
     </>
   );
@@ -182,14 +197,44 @@ export interface SessionOutcome {
   next: ModuleProgress | null;
 }
 
+/** The session's one-eye-only check points, and whether its reports looked consistent. */
+export function CatchSummary({ session }: { session: SessionRecord }) {
+  const { t } = useTranslation();
+  const c = sessionCatch(session);
+  if (c.left.shown + c.right.shown + c.falseAlarms === 0) return null;
+  const reasons = sessionInconsistencies(session);
+  const part = (e: { shown: number; seen: number }) =>
+    e.shown ? t('training.catchSeen', { seen: e.seen, shown: e.shown }) : '—';
+  return (
+    <div data-testid="summary-catch">
+      <p>
+        {t('training.catchLine', { left: part(c.left), right: part(c.right) })}
+        {c.falseAlarms ? ` ${t('training.catchFalse', { n: c.falseAlarms })}` : ''}
+      </p>
+      {reasons.length ? (
+        <Banner tone="info" title={t('training.doubtfulTitle')}>
+          <ul>
+            {reasons.map((r) => (
+              <li key={r}>{t(`consistency.reasons.${r}`)}</li>
+            ))}
+          </ul>
+          {t('training.doubtfulBody')}
+        </Banner>
+      ) : null}
+    </div>
+  );
+}
+
 export function SummaryView({
   def,
   outcome,
   metrics,
+  session,
 }: {
   def: ModuleDefinition;
   outcome: SessionOutcome | null;
   metrics: Record<string, number>;
+  session?: SessionRecord | null;
 }) {
   const { t } = useTranslation();
   return (
@@ -197,6 +242,7 @@ export function SummaryView({
       <p data-testid="summary-minutes">
         {t('training.summaryMinutes', { minutes: (outcome?.minutes ?? 0).toFixed(1) })}
       </p>
+      {session ? <CatchSummary session={session} /> : null}
       {outcome?.steppedBack ? (
         <Banner tone="warn" title={t('training.steppedBackTitle')}>
           {t('training.steppedBackBody')}

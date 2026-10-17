@@ -6,7 +6,8 @@
     "offlineReady": "Ready to work offline.",
     "recovered": "{{count}} unfinished session(s) from a previous run were recovered and closed.",
     "errorTitle": "Something went wrong",
-    "errorBody": "The app hit an unexpected error. Your data is saved locally. Reload to continue."
+    "errorBody": "The app hit an unexpected error. Your data is saved locally. Reload to continue.",
+    "skip": "Skip to main content"
   },
   "nav": {
     "overview": "Overview",
@@ -14,7 +15,8 @@
     "history": "History",
     "settings": "Settings",
     "redFlag": "Red flag",
-    "report": "Report"
+    "report": "Report",
+    "account": "Account"
   },
   "common": {
     "cancel": "Cancel",
@@ -29,8 +31,8 @@
     "loading": "Loading…"
   },
   "footer": {
-    "notMedical": "Not medical treatment.",
-    "body": "This is a personal wellness / self-experiment tool for an adult under clinical supervision. It does not diagnose, treat, cure or prevent any condition. Not for children without clinician supervision. All data stays on this device. Stop if you see double or feel unwell, and consult an orthoptist or ophthalmologist."
+    "notMedical": "For personal and educational use only.",
+    "body": "A personal, educational tool for exploring how your two eyes work together, for adults. It is not a medical device: it does not diagnose, treat, cure or prevent any condition, and its numbers are not clinical measurements. If you have an eye condition, follow your clinician’s advice. Not for children. All data stays on this device unless you turn on encrypted sync. Stop if you see double or feel unwell."
   },
   "safety": {
     "stopButton": "STOP: double vision or unwell",
@@ -91,7 +93,7 @@
   },
   "disclaimer": {
     "title": "Before you begin: safety and what this app is",
-    "notTreatment": "This is not medical treatment.",
+    "notTreatment": "For personal and educational use only — not diagnosis, not treatment.",
     "statement": "A clinical prism test showing alignment at 7Δ tells us the eyes CAN be optically aligned; it does NOT tell us whether breaking your long-standing suppression will be comfortable or could cause double vision. Proceed slowly and stop if anything is uncomfortable. Consult an orthoptist/ophthalmologist.",
     "evidenceTitle": "What the evidence says",
     "evidence1": "In adults with long-standing strabismus, persistent intractable double vision after alignment is rare: in Kushner (2002, Arch Ophthalmol 120:1498–504) 3 of 424 adults (0.8%) developed it, and patients who did not see double during pre-operative prism testing never developed diplopia afterwards.",
@@ -107,7 +109,7 @@
     "photoBody": "All modules are limited to well below 3 luminance changes per second, and a client-side detector watches the rendered frames and auto-pauses if content approaches the WCAG 2.3.1 / ITU-R BT.1702 thresholds. If you have a history of photosensitive seizures, do not use this app without medical advice.",
     "privacyTitle": "Privacy",
     "privacyBody": "Everything you enter stays on this device (browser storage). There are no accounts, no network calls, no analytics and no trackers. You can export and delete your data at any time.",
-    "ack1": "I am an adult using this as a personal wellness / self-experiment tool, not as treatment.",
+    "ack1": "I am an adult using this for personal and educational purposes, not for diagnosis or treatment.",
     "ack2": "I understand that breaking suppression can rarely cause persistent double vision, and that I should stop and consult a clinician if it happens.",
     "ack3": "I will stop immediately for double vision, headache, nausea or any red-flag symptom.",
     "ack4": "I have discussed (or will discuss) this with an orthoptist / ophthalmologist.",
@@ -176,7 +178,14 @@
     "unverifiableTitle": "This video cannot be checked for flashing",
     "unverifiableBody": "The site hosting this video does not allow its frames to be read, so the app cannot watch it for flashing light. Playback has stopped. Use a video file from your own device instead.",
     "vrEndedTitle": "You left VR",
-    "vrEndedBody": "The session is paused and the timer has stopped. Continue, then enter VR again, or press STOP."
+    "vrEndedBody": "The session is paused and the timer has stopped. Continue, then enter VR again, or press STOP.",
+    "catchButton": "Saw ◇ (C)",
+    "catchHelp": "When a small diamond ◇ appears, press C (or the button).",
+    "catchSeen": "{{seen}} of {{shown}}",
+    "catchLine": "One-eye check points ◇ — left eye: {{left}}; right eye: {{right}}.",
+    "catchFalse": "Pressed {{n}} time(s) with no ◇ on screen.",
+    "doubtfulTitle": "Some reports did not match the check points",
+    "doubtfulBody": "This often comes from attention, glasses slipping, or one eye switching off for a moment. It is not a mistake; this session simply does not raise the difficulty."
   },
   "gate": {
     "training-locked": "Training is locked after a red-flag report. Open the Red flag page.",
@@ -188,7 +197,8 @@
     "clinician-agreement": "Requires the clinician agreement toggle in Settings.",
     "cap": "The daily time cap is reached, or you reported strong symptoms just now. Rest today.",
     "not-implemented": "This module ships in Phase 2.",
-    "symptoms": "You reported strong symptoms in the pre-session check. Please rest today; do not train with double vision, headache or nausea."
+    "symptoms": "You reported strong symptoms in the pre-session check. Please rest today; do not train with double vision, headache or nausea.",
+    "needs-full-calibration": "Needs the full calibration (about 10 minutes): this stage depends on an exact screen size and distance."
   },
   "modules": {
     "l1": {
@@ -219,7 +229,7 @@
     },
     "l3": {
       "name": "Don't Lose the Left",
-      "tagline": "Anti-suppression: stars for the left eye, the basket for the right.",
+      "tagline": "Keep both eyes in the game: stars for the left eye, the basket for the right.",
       "description": "Stars fall that only your LEFT eye can see; the basket you move is seen by your RIGHT eye, so catching needs both eyes at once. From game level 2, clouds fall that only the right eye sees: avoid them. Intensity lowers the right eye’s contrast; game difficulty changes speed, star size and basket width.",
       "gameDifficulty": "Game difficulty: fall speed, star size, spawn rate, basket width; clouds from level 2.",
       "controls": "Controls: hold the left / right arrow keys (or A / D) to move the basket, or click / tap where it should go.",
@@ -376,7 +386,7 @@
     "cantTell": "Answered \"cannot tell\"",
     "percentCorrect": "Percent correct",
     "reversals": "Staircase reversals",
-    "stereoThresholdArcsec": "Stereo threshold (arcsec)",
+    "stereoThresholdArcsec": "Finest depth seen (arcsec)",
     "bestSeenArcsec": "Finest depth seen (arcsec)",
     "watchedSeconds": "Seconds watched",
     "videoSeconds": "Video length (s)",
@@ -389,7 +399,12 @@
     "pagesRead": "Pages read",
     "wordsRead": "Words read",
     "missingReports": "\"Words missing\" reports",
-    "secondsPerPage": "Seconds per page"
+    "secondsPerPage": "Seconds per page",
+    "catchShownLeft": "Left-eye ◇ shown",
+    "catchShownRight": "Right-eye ◇ shown",
+    "catchHitLeft": "Left-eye ◇ seen",
+    "catchHitRight": "Right-eye ◇ seen",
+    "catchFalseAlarms": "Presses with no ◇"
   },
   "intensity": {
     "low": "Low",
@@ -454,7 +469,8 @@
     "availableTitle": "Ready to add",
     "addToPlan": "Add to today’s plan",
     "unlocksWith": "Unlocks after comfortable sessions on earlier stages.",
-    "allUnlocked": "All stages are unlocked."
+    "allUnlocked": "All stages are unlocked.",
+    "unlockLabel": "Progress towards unlocking {{name}}"
   },
   "module": {
     "intensityMap": "Intensity mapping",
@@ -523,7 +539,7 @@
     "resetAll": "Delete all local data",
     "resetConfirm": "This permanently deletes all local data. Sure?",
     "diagnostics": {
-      "title": "Diagnostics",
+      "title": "Error log",
       "hint": "Errors the app ran into are kept here, on this device only, so a problem can be traced later. They contain no training results, symptom answers or anything you typed. Nothing is sent anywhere.",
       "count": "{{count}} error(s) logged · app version {{version}}",
       "refresh": "Refresh",
@@ -566,7 +582,8 @@
       "squareB": "Square B",
       "result": "Left eye sees the {{left}} channel; right eye sees the {{right}} channel.",
       "red": "red",
-      "cyan": "cyan"
+      "cyan": "cyan",
+      "cvdHint": "Colour-vision differences are fine: the glasses separate the eyes by filter, not by colour. If the red square looks much darker (common with red-green colour deficiency), the contrast-balance step evens the brightness out."
     },
     "ghost": {
       "title": "Ghosting (crosstalk)",
@@ -588,19 +605,19 @@
       "question": "How many dots do you see?",
       "alternating": "It keeps switching between 2 and 3 (alternating)",
       "results": {
-        "fusion": "Fusion (4 dots)",
-        "left-suppression": "Left eye suppressed",
-        "right-suppression": "Right eye suppressed",
-        "diplopia": "Diplopia (5 dots)",
-        "alternating": "Alternating suppression",
-        "unknown": "Unknown"
+        "fusion": "4 dots seen",
+        "left-suppression": "3 dots: only the right eye’s dots",
+        "right-suppression": "2 dots: only the left eye’s dots",
+        "diplopia": "5 dots seen",
+        "alternating": "2 and 3 dots, switching",
+        "unknown": "Not answered"
       },
       "explain": {
-        "fusion": "Both eyes contribute and the images are combined. Good starting point.",
-        "left-suppression": "Only the right eye's dots are seen; the left eye is suppressing. This is the expected starting point for you.",
-        "right-suppression": "Only the left eye's dots are seen; the right eye is suppressing.",
-        "alternating": "Perception switches between the eyes.",
-        "unknown": "Could not classify."
+        "fusion": "You saw the dots of both eyes combined.",
+        "left-suppression": "You saw only the dots meant for the right eye. The training starts by bringing in the left eye’s picture.",
+        "right-suppression": "You saw only the dots meant for the left eye.",
+        "alternating": "What you saw switched between the two eyes’ dots.",
+        "unknown": "No answer recorded."
       },
       "diplopiaCaution": "You are seeing double with these glasses on. This is exactly the situation where caution matters: it may be uncomfortable and could persist. Do not force fusion. Continue only with tiny steps, stop at any discomfort, and discuss this result with your orthoptist. You can stop the wizard now."
     },
@@ -678,13 +695,13 @@
     "vergenceSub": "Demand at which the image doubled, and where it fused again.",
     "break": "Break",
     "recovery": "Recovery",
-    "stereo": "L5 stereo threshold",
+    "stereo": "L5 finest depth seen",
     "stereoSub": "Finest depth difference seen, in arcseconds. Lower is finer.",
     "diplopia": "Double vision after sessions",
     "diplopiaSub": "From the post-session check: never, rarely, sometimes, often, always."
   },
   "report": {
-    "title": "Summary for your clinician",
+    "title": "Training summary",
     "period": "Period {{from}} to {{to}}.",
     "generated": "Generated {{date}} on this device.",
     "range": "Period",
@@ -692,7 +709,7 @@
     "last90": "Last 90 days",
     "allTime": "All time",
     "print": "Print / save as PDF",
-    "disclaimer": "Self-recorded data from a personal wellness tool, not a medical device. Measures are approximate (screen-based, anaglyph glasses) and are meant to support, not replace, a clinical assessment.",
+    "disclaimer": "Self-recorded data from a personal, educational tool — not a medical device and not a clinical measurement. Numbers are rough screen-based approximations (anaglyph glasses) and cannot replace an eye examination.",
     "setupTitle": "Setup and starting point",
     "profile": "Calibration profile",
     "viewing": "Viewing",
@@ -727,7 +744,7 @@
       "breakBO": "base-out break",
       "recoveryBO": "base-out recovery",
       "breakBI": "base-in break",
-      "stereo": "stereo threshold"
+      "stereo": "finest depth seen"
     },
     "symptomsTitle": "Symptoms and safety",
     "diplopiaSessions": "Sessions with double vision (sometimes or more)",
@@ -754,17 +771,18 @@
     "csvSessions": "Sessions (CSV)",
     "csvSymptoms": "Symptom checks (CSV)",
     "csvSafety": "Safety events (CSV)",
-    "checksTitle": "Measured: weekly check",
-    "checksIntro": "The same short measurement every week, with no feedback and no score. Baseline = the first two checks in the period.",
-    "measuresIntro": "From the training games themselves. They also improve with practice, so read them together with the weekly check above.",
-    "csvChecks": "Weekly checks (CSV)"
+    "checksTitle": "Weekly self-check",
+    "checksIntro": "The same short self-check every week, with no feedback and no score. Baseline = the first two self-checks in the period. Not a clinical measurement.",
+    "measuresIntro": "From the training games themselves. They also improve with practice, so read them together with the weekly self-check above.",
+    "csvChecks": "Weekly self-checks (CSV)",
+    "subtitle": "Your own records, to keep — or to show your clinician if you wish."
   },
   "check": {
-    "title": "Weekly check",
-    "intro": "A short measurement, the same every week: four steps, about 4 minutes. There is no score and no feedback, so a change reflects your eyes rather than practice at a game. Wear your glasses and sit at your usual distance.",
+    "title": "Weekly self-check",
+    "intro": "A short self-check, the same every week: four steps, about 4 minutes. There is no score and no feedback, so your own record shows how what you see changes over the weeks — apart from getting better at the games. It is not a clinical test. Wear your glasses and sit at your usual distance.",
     "howTitle": "How it works",
     "how": "First a quick symptom check. Then: Worth 4-dot, lining up a cross and a ring (twice), contrast balance, and finding a floating square in random dots. Press STOP (or Esc) at any time.",
-    "postTitle": "How do you feel after the check?",
+    "postTitle": "How do you feel after the self-check?",
     "stepOf": "Step {{n}} of {{total}}",
     "worthTitle": "Worth 4-dot",
     "alignTitle": "Line them up ({{n}} of {{total}})",
@@ -782,35 +800,35 @@
     "stereoWhere": "Where is the square?",
     "cantTell": "Can't tell",
     "stereoProgress": "Pattern {{n}}",
-    "stoppedBody": "The check stopped. What you measured so far is kept. Please tell us how you feel.",
-    "resultTitle": "Weekly check saved",
+    "stoppedBody": "The self-check stopped. What you recorded so far is kept. Please tell us how you feel.",
+    "resultTitle": "Weekly self-check saved",
     "resultStoppedTitle": "Check stopped — partial results saved",
-    "baselineNote": "This is one of your first two checks: together they form your baseline. Later checks are compared with it.",
-    "compareNote": "Compared with your baseline (the first two checks) and your previous check.",
+    "baselineNote": "This is one of your first two self-checks: together they form your baseline. Later self-checks are compared with it.",
+    "compareNote": "Compared with your baseline (the first two self-checks) and your previous check.",
     "thisCheck": "This check",
     "previous": "Previous",
     "baseline": "Baseline",
     "count": "Checks",
     "measures": {
-      "alignment": "Perceived misalignment",
+      "alignment": "Alignment setting",
       "balance": "Right-eye contrast at balance",
-      "stereo": "Stereo threshold",
+      "stereo": "Finest depth seen",
       "worth": "Worth 4-dot"
     },
     "chartSub": {
-      "alignment": "How far the cross had to move from the calibrated position, in Δ. Closer to 0 is better.",
-      "balance": "Right-eye contrast that looked equal to the left eye. Closer to 100% means more balanced.",
-      "stereo": "Smallest depth difference seen, in arcseconds. Lower is finer."
+      "alignment": "Where the cross looked centred, in Δ away from the calibrated position.",
+      "balance": "Right-eye contrast that looked equal to the left eye.",
+      "stereo": "Smallest depth difference you saw, in arcseconds (on this screen)."
     },
-    "meaning": "Small week-to-week changes are normal. Look at the direction over several weeks, and discuss changes with your orthoptist.",
-    "never": "Not done yet. The first two checks set your baseline.",
+    "meaning": "Small week-to-week changes are normal. These are your own observations on a screen, not clinical measurements; if something changes noticeably, talk to your clinician.",
+    "never": "Not done yet. The first two self-checks set your baseline.",
     "dueSince": "Due: last check {{days}} days ago.",
     "next": "Next check in {{days}} day(s).",
-    "why": "Measures progress apart from game scores.",
-    "startDue": "Start the weekly check",
+    "why": "Your own weekly record, apart from game scores.",
+    "startDue": "Start the weekly self-check",
     "startAnyway": "Check now anyway",
-    "noneYet": "No weekly check yet.",
-    "historyTitle": "Weekly check results"
+    "noneYet": "No weekly self-check yet.",
+    "historyTitle": "Weekly self-check results"
   },
   "goal": {
     "title": "This week",
@@ -900,5 +918,115 @@
     "comfort4": "Adjust the headset lens distance (IPD) to your eyes before starting.",
     "comfort5": "After the session, the usual symptom check asks about nausea and double vision.",
     "comfortAck": "I understand"
+  },
+  "consistency": {
+    "title": "Report consistency",
+    "intro": "Small diamonds ◇ appear to one eye at a time during training (in L1, the chick). Seeing them shows that eye’s picture is getting through; presses without one show how reliable the reports are.",
+    "none": "No check points yet.",
+    "leftSeen": "Left eye ◇ seen",
+    "rightSeen": "Right eye ◇ seen",
+    "falseAlarms": "Presses with no ◇",
+    "flagged": "Sessions with doubtful reports",
+    "flaggedValue": "{{n}} of {{of}}",
+    "why": "Why",
+    "leftEye": "Left eye",
+    "rightEye": "Right eye",
+    "chartTitle": "Check points seen, per eye",
+    "chartSub": "Share of the one-eye ◇ seen in each session.",
+    "reasons": {
+      "presses-without-symbol": "Pressed more often without a ◇ than with one.",
+      "left-missed": "The session’s results needed both eyes, but most left-eye ◇ were missed.",
+      "right-missed": "The session’s results needed both eyes, but most right-eye ◇ were missed."
+    }
+  },
+  "quick": {
+    "start": "Quick start (3 min)",
+    "startHint": "Estimated screen size, glasses check, then your first session.",
+    "title": "Quick start",
+    "intro": "Three short steps and you can start. The screen size is estimated; the full calibration (about 10 minutes, with a bank card) can follow any time and is needed for some later stages.",
+    "step1": "1. Your screen and distance",
+    "device": "Device",
+    "devices": {
+      "laptop": "Laptop",
+      "desktop": "Desktop monitor",
+      "tablet": "Tablet",
+      "phone": "Phone"
+    },
+    "diagonal": "Screen diagonal in inches (if you know it)",
+    "diagonalHint": "Leave empty to use a typical size for this device.",
+    "distance": "Distance from your eyes to the screen (cm)",
+    "distanceHint": "Roughly arm’s length. Keep the same distance every time.",
+    "estimate": "Estimate: about {{ppi}} pixels per inch ({{diagonal}}-inch screen).",
+    "step2": "2. Your glasses",
+    "step3": "3. Prism value (optional)",
+    "knowsPrism": "I know my prism value from an eye examination",
+    "noPrism": "Without it, both eyes’ pictures start in the same place; the full calibration lets you fine-tune.",
+    "afterwards": "Afterwards: run the full calibration for a measured screen size, the contrast balance and Worth 4-dot.",
+    "go": "Save and start the first session",
+    "full": "Full calibration instead",
+    "profileName": "Quick setup {{date}}",
+    "bannerTitle": "You are using the quick setup",
+    "bannerBody": "Screen size and contrast balance are estimates. The full calibration takes about 10 minutes and unlocks every stage.",
+    "bannerLink": "Run the full calibration"
+  },
+  "problem": {
+    "open": "Report a problem",
+    "title": "Report a problem",
+    "intro": "This is everything that would be sent: app version, browser and the recent errors — no training data and nothing you typed elsewhere. Nothing is sent unless you choose to.",
+    "note": "What were you doing? (optional)",
+    "preview": "Report preview",
+    "github": "Open a report on GitHub",
+    "githubHint": "Opens GitHub in a new tab with the report filled in; you need a GitHub account and can still edit or cancel there.",
+    "copy": "Copy report",
+    "copied": "Copied",
+    "noticeTitle": "The app ran into an error",
+    "noticeBody": "Your data is safe. You can report it so it can be fixed.",
+    "dismiss": "Dismiss"
+  },
+  "account": {
+    "title": "Account and sync",
+    "intro": "Sign in to keep the same records on several devices. Your training data is encrypted on this device before upload; the server only stores ciphertext.",
+    "notConfiguredTitle": "Cloud sync is not set up",
+    "notConfigured": "This copy of the app has no cloud sync configured, so everything stays on this device. Use backup files (Settings) to move data between devices.",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "email": "Email",
+    "password": "Account password",
+    "passwordHint": "At least 8 characters. Used only to sign in; it cannot decrypt your data.",
+    "forgot": "Forgot password",
+    "resetSent": "If an account exists for this email, a password-reset link is on its way.",
+    "confirmEmail": "Check your email and confirm the address, then sign in.",
+    "authFailed": "Could not sign in: {{error}}",
+    "signedInTitle": "Signed in",
+    "signedInAs": "Signed in as {{email}}.",
+    "signOut": "Sign out",
+    "signedOut": "Signed out. The data on this device stays here.",
+    "syncTitle": "Encrypted sync",
+    "createIntro": "Choose a sync passphrase (at least {{n}} characters), different from your account password. It encrypts your data before upload and never leaves this device. It cannot be recovered: write it down.",
+    "unlockIntro": "This account already has encrypted data. Enter the sync passphrase you chose on your first device.",
+    "syncPass": "Sync passphrase",
+    "syncPass2": "Repeat the sync passphrase",
+    "remember": "Remember on this device (sync automatically)",
+    "createVault": "Encrypt and upload",
+    "unlock": "Unlock and sync",
+    "wrongSyncPass": "That sync passphrase does not open the encrypted data.",
+    "lastSync": "Last sync",
+    "version": "Version",
+    "syncNow": "Sync now",
+    "syncing": "Syncing…",
+    "syncCreated": "Your data is encrypted and stored in the cloud.",
+    "syncDone": "Synced. New from other devices: {{sessions}} session(s), {{symptomChecks}} check(s), {{assessments}} self-check(s).",
+    "received": "Last sync brought {{sessions}} session(s), {{symptomChecks}} symptom check(s) and {{assessments}} self-check(s) from other devices.",
+    "syncFailed": "Sync did not complete: {{error}}",
+    "forgetKey": "Forget the passphrase on this device",
+    "deleteTitle": "Cloud copy",
+    "deleteHint": "Deleting the cloud copy does not touch the data on your devices. Use it if you lost the sync passphrase, then set a new one.",
+    "deleteCloud": "Delete cloud data",
+    "deleteConfirm": "Delete the encrypted cloud copy?",
+    "deleted": "The cloud copy was deleted.",
+    "privacyTitle": "What the server sees",
+    "privacy1": "Your email address and a password hash (to sign in), handled by Supabase.",
+    "privacy2": "One encrypted file: compressed and encrypted on your device (AES-256-GCM). Without your sync passphrase it cannot be read — not by the server, not by the app’s owner.",
+    "privacy3": "When and from which kind of device (e.g. \"Chrome · Windows\") it was last updated."
   }
 }

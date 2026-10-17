@@ -1,8 +1,9 @@
 # Safety design
 
-This app is a personal wellness / self-experiment tool for one adult with paralytic
-(incomitant) strabismus, used under the supervision of an orthoptist / ophthalmologist.
-It is **not** a medical device and makes **no** treatment or diagnosis claims.
+This app is a tool **for personal and educational use** by adults. It was first built for
+one adult with paralytic (incomitant) strabismus who uses it alongside their orthoptist /
+ophthalmologist. It is **not** a medical device and makes **no** treatment or diagnosis
+claims; its numbers are self-observations on a screen, not clinical measurements.
 
 ## Evidence context encoded in the app copy
 
@@ -41,6 +42,8 @@ It is **not** a medical device and makes **no** treatment or diagnosis claims.
 | Brock string: horizontal only; near-bead convergence 1–8Δ (clinician agreement to raise), far bead at most 2Δ divergence; the highlight moves through the transition guard                                                                                          | `src/modules/brock`                                                                  |
 | Reading: page turns go through the transition guard; the dominant eye is dimmed, never the weak eye                                                                                                                                                                 | `src/modules/reading`                                                                |
 | Built-in video scenes: slow motion only, no fast brightness changes; the flash detector still checks every frame                                                                                                                                                    | `src/modules/video/scenes.ts`                                                        |
+| One-eye check points (◇, L1's chick) in every module; sessions with doubtful reports (presses without a symbol, or one eye's symbols missed while the results needed both eyes) never raise the difficulty                                                          | `src/engine/catchTrials.ts`, `src/data/consistency.ts`, `TrainingShell.tsx`          |
+| Quick-start calibrations (estimated screen size) do not unlock L4, L5, the Brock string or the weekly self-check, which depend on exact Δ / arcsec conversion                                                                                                       | `src/safety/gating.ts`, `src/assessment/WeeklyCheck.tsx`                             |
 | Not usable inside another site's frame (clickjacking): hidden and inactive, with a link to open it directly                                                                                                                                                         | `public/frame-guard.js`, `index.html`, `src/main.tsx`                                |
 | Session lifecycle rules (STOP from every state; unverifiable flash cannot be dismissed; pause never hides a break or flash warning) are a pure, unit-tested state machine                                                                                           | `src/safety/sessionMachine.ts`                                                       |
 | A STOP in the last 3 sessions re-locks L3–L5 and video until sessions are comfortable again                                                                                                                                                                         | `gating.ts`, overview                                                                |
@@ -66,7 +69,17 @@ It is **not** a medical device and makes **no** treatment or diagnosis claims.
 
 ## Regulatory posture
 
-Wellness / personal-experiment language only; no treatment or diagnosis claims anywhere;
-persistent footer disclaimer; `docs/TERMS.md` and `docs/PRIVACY.md` for public deployment;
-"not for children without clinician supervision". Treating a condition could make software
-an SaMD under FDA / EU MDR / NMPA rules; this project deliberately stays in the wellness lane.
+Personal and educational use only. Rules for all copy (UI, docs, README):
+
+- No treatment, cure or improvement claims; no diagnosis.
+- Results are described, not interpreted: "3 dots: only the right eye's dots" rather than
+  "left eye suppressed"; "finest depth seen" rather than "stereo threshold".
+- The weekly check is a "self-check", never a "test" or "measurement", and the report says it
+  is not a clinical measurement.
+- Persistent footer disclaimer; the disclaimer is versioned and must be re-acknowledged when
+  this wording changes (`DISCLAIMER_VERSION`).
+- Adults only.
+
+Software that diagnoses or treats a condition can be a medical device (SaMD) under FDA, EU
+MDR or NMPA rules; this project deliberately stays a personal, educational tool. Before any
+public promotion, have this positioning reviewed by a regulatory adviser.

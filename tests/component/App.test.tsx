@@ -32,7 +32,7 @@ describe('App shell', () => {
   it.each([
     ['#/settings', 'Settings'],
     ['#/history', 'History'],
-    ['#/report', 'Summary for your clinician'],
+    ['#/report', 'Training summary'],
     ['#/calibration', 'Calibration wizard'],
   ])('loads the page at %s on demand', async (hash, heading) => {
     useSettings.getState().acceptDisclaimer();

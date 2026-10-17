@@ -122,6 +122,8 @@ export interface ModuleDefinition {
   idlePauseMs?: number;
   /** Tested for VR headsets (WebXR): plays in the headset when the VR renderer is chosen. */
   vrReady?: boolean;
+  /** The module runs its own one-eye-only check points (L1's chick), so skip the shared ones. */
+  ownCatchTrials?: boolean;
   /** Optional setup component; the session cannot start until it reports a config. */
   setup?: ComponentType<ModuleSetupProps>;
   create(ctx: ModuleRuntimeContext): ModuleInstance;

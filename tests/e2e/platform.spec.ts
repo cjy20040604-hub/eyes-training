@@ -160,7 +160,7 @@ test('pages loaded on demand still work offline once the app is installed', asyn
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await context.setOffline(true);
   await page.goto('/#/report');
-  await expect(page.getByRole('heading', { name: 'Summary for your clinician' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Training summary' })).toBeVisible();
   await page.goto('/#/calibration');
   await expect(page.getByRole('heading', { name: 'Calibration wizard' })).toBeVisible();
   await context.setOffline(false);

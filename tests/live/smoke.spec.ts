@@ -40,7 +40,7 @@ test('the deployed version loads with no errors and talks to no other site', asy
   await expect(page.getByRole('heading', { name: "Today's training" })).toBeVisible();
   // Pages that load on demand come from the same sub-path.
   for (const [hash, heading] of [
-    ['#/report', 'Summary for your clinician'],
+    ['#/report', 'Training summary'],
     ['#/calibration', 'Calibration wizard'],
     ['#/history', 'History'],
     ['#/settings', 'Settings'],

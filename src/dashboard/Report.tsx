@@ -9,6 +9,7 @@ import { pxToPrismDiopters, round } from '../engine/units';
 import { getModule } from '../modules/registry';
 import { Banner, Button, Card, Segmented } from '../ui';
 import { CheckTrends, assessmentsToCsv } from '../assessment/CheckTrends';
+import { ConsistencySection } from './ConsistencySection';
 import { TrendsSection } from './TrendsSection';
 import { firstAndLatest, summarize } from './trends';
 
@@ -128,6 +129,7 @@ export function Report() {
       <div className="report-head">
         <div>
           <h1>{t('report.title')}</h1>
+          <p className="hint">{t('report.subtitle')}</p>
           <p className="hint">
             {t('report.period', { from: fmtDate(fromKey), to: fmtDate(toKey) })}{' '}
             {t('report.generated', { date: fmtDate(new Date().toISOString()) })}
@@ -274,6 +276,12 @@ export function Report() {
             ))}
           </tbody>
         </table>
+      </Card>
+
+      <Card title={t('consistency.title')}>
+        <div data-testid="report-consistency">
+          <ConsistencySection sessions={rangeSessions} chart={false} />
+        </div>
       </Card>
 
       <Card title={t('report.symptomsTitle')}>

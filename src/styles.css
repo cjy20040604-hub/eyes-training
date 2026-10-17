@@ -889,6 +889,19 @@ thead th {
   flex: 1;
 }
 
+/* The prompt changes every trial; reserve two lines so the HUD (and with it the canvas)
+   keeps its height. A height change resizes the stimulus and restarts the trial. */
+.training-hud [data-testid='hud-prompt'] {
+  flex: 0 1 340px;
+  min-width: 0;
+  min-height: 2.8em;
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: right;
+}
+
 .training-hud .hud-title {
   display: inline-flex;
   align-items: center;
@@ -1459,4 +1472,61 @@ thead th {
   .goal-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---- 0.4: dialogs, catch button, problem report ---- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 20, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 50;
+}
+.modal {
+  background: var(--paper-raised);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+}
+.modal textarea {
+  width: 100%;
+  min-height: 70px;
+}
+.report-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 0.8rem;
+  background: var(--paper);
+  border: 1px solid var(--rule-soft);
+  padding: 10px;
+}
+.catch-button {
+  white-space: nowrap;
+}
+
+/* Skip link: hidden until focused (keyboard users), then shown at the top left. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  background: var(--cobalt);
+  color: var(--cobalt-ink);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+}
+.skip-link:focus {
+  top: 8px;
+}
+main:focus {
+  outline: none;
 }

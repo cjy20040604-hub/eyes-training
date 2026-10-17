@@ -89,7 +89,9 @@ export function WeeklyCheck() {
     [base],
   );
 
-  const blocked = !loading && (!calibration || settings.trainingLock.locked);
+  // The self-check depends on exact Δ / arcsec conversion: a quick calibration is not enough.
+  const quick = calibration?.quality === 'quick';
+  const blocked = !loading && (!calibration || quick || settings.trainingLock.locked);
   const measuring = MEASURE_STEPS.includes(step);
   const stepNumber = MEASURE_STEPS.indexOf(step) + 1;
 
@@ -286,15 +288,17 @@ export function WeeklyCheck() {
         <Banner tone="warn" title={t('training.blockedIntro')}>
           {!calibration
             ? t('gate.no-calibration')
-            : settings.trainingLock.locked
-              ? t('gate.training-locked')
-              : t('gate.symptoms')}
+            : quick
+              ? t('gate.needs-full-calibration')
+              : settings.trainingLock.locked
+                ? t('gate.training-locked')
+                : t('gate.symptoms')}
         </Banner>
         <div className="row">
           <Link className="btn" to="/">
             {t('nav.overview')}
           </Link>
-          {!calibration ? (
+          {!calibration || quick ? (
             <Link className="btn primary" to="/calibration">
               {t('nav.calibration')}
             </Link>

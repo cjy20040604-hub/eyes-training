@@ -44,7 +44,9 @@ describe('overview cards', () => {
 
   it('weekly check: first time, due, and not yet due', () => {
     const { rerender } = wrap(<WeeklyCheckCard assessments={[]} enabled />);
-    expect(screen.getByTestId('weekly-check-card')).toHaveTextContent('first two checks set your baseline');
+    expect(screen.getByTestId('weekly-check-card')).toHaveTextContent(
+      'first two self-checks set your baseline',
+    );
     expect(screen.getByTestId('start-weekly-check')).toHaveAttribute('href', '/check');
     const recent = {
       id: 'a',

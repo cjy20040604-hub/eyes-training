@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { backupToFolder, requestPersistentStorage } from '../data/backup';
+import { autoSync } from '../sync/config';
 import { updateAppBadge } from '../data/goals';
 import { useActiveCalibration, useAllData, useVrSupport } from '../data/hooks';
 import {
@@ -40,6 +41,7 @@ import {
   type BlockReason,
 } from './sessionMachine';
 import { discomfortReported } from './symptomRules';
+import { sessionInconsistencies } from '../data/consistency';
 import { SymptomCheckForm, type SymptomCheckSubmit } from './SymptomCheckForm';
 import { TrainingCanvas } from './TrainingCanvas';
 import {
@@ -84,6 +86,7 @@ export function TrainingShell() {
   /** Metrics captured when the session ends (STOP or time up), before the stimulus unmounts. */
   const finalMetricsRef = useRef<Record<string, number> | null>(null);
   const frameClockRef = useRef(0);
+  const catchRef = useRef<(() => void) | null>(null);
   const sessionRef = useRef<SessionRecord | null>(null);
   sessionRef.current = session;
 
@@ -119,6 +122,7 @@ export function TrainingShell() {
       sessions: all.data.sessions,
       checks: all.data.checks,
       disclaimerVersion: DISCLAIMER_VERSION,
+      calibrationQuality: calibration?.quality,
     });
     reasons.push(...gate.reasons);
     if (!calibration && !reasons.includes('no-calibration')) reasons.push('no-calibration');
@@ -356,11 +360,17 @@ export function TrainingShell() {
       !result.trainingLocked &&
       !progressionLockedNow
     ) {
-      const perf = def.assess(s.metrics, s.actualMinutes);
+      // Doubtful self-reports (see consistency.ts) never raise the difficulty.
+      const doubtful = sessionInconsistencies(s).length > 0;
+      const assessed = def.assess(s.metrics, s.actualMinutes);
+      const perf = doubtful && assessed === 'good' ? 'ok' : assessed;
       const adv = autoAdvance(def, result.progress, perf, plan.intensityTier, { settings, calibration });
       nextProgress = adv.progress;
       change = adv.change;
-      s = { ...s, notes: `performance=${perf}${change ? `; next=${change}` : ''}` };
+      s = {
+        ...s,
+        notes: `performance=${perf}${doubtful ? '; reports=doubtful' : ''}${change ? `; next=${change}` : ''}`,
+      };
       sessionRef.current = s;
       setSession(s);
       await saveSession(s);
@@ -388,6 +398,7 @@ export function TrainingShell() {
       void requestPersistentStorage();
     }
     void backupToFolder();
+    void autoSync();
   };
 
   // ---------------- Render ----------------
@@ -476,6 +487,7 @@ export function TrainingShell() {
           sessionMs={sessionMs}
           allowedMinutes={allowedMinutes}
           stopDisabled={phase !== 'running'}
+          onCatch={def.ownCatchTrials || vrMode ? undefined : () => catchRef.current?.()}
           onStop={onStop}
         />
         {phase === 'running' && calibration && progress ? (
@@ -493,6 +505,7 @@ export function TrainingShell() {
             onEvent={emitEvent}
             metricsRef={metricsRef}
             frameClockRef={frameClockRef}
+            catchRef={catchRef}
             config={setupConfig ?? {}}
             onIdle={() => dispatch({ type: 'pause', reason: 'idle' })}
             vr={
@@ -551,5 +564,5 @@ export function TrainingShell() {
     );
   }
 
-  return <SummaryView def={def} outcome={outcome} metrics={session?.metrics ?? {}} />;
+  return <SummaryView def={def} outcome={outcome} metrics={session?.metrics ?? {}} session={session} />;
 }

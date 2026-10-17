@@ -31,6 +31,7 @@ export function ModuleView() {
     sessions: all.data?.sessions ?? [],
     checks,
     disclaimerVersion: DISCLAIMER_VERSION,
+    calibrationQuality: calibration?.quality,
   });
   const progress = settings.moduleProgress[id];
   const tiers: IntensityTier[] = ['low', 'medium', 'high'];

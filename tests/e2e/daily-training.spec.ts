@@ -139,16 +139,21 @@ async function finishWithCleanCheck(page: Page): Promise<string> {
 async function playL1(page: Page) {
   await startSession(page, 'l1');
   let chicks = 0;
+  let chickShown = false;
   await playUntilEnd(page, async (t, active) => {
     if (active || t % 1000 === 0) {
       const cage = (await probe(page))?.['cage'];
       if (cage) await page.mouse.click(cage.x, cage.y);
     }
     const prompt = await promptText(page);
-    if (prompt.includes('chick')) {
+    // One press per chick: pressing again while the prompt is still up counts as a press
+    // without a symbol, which marks the session's reports as doubtful.
+    const chickNow = prompt.includes('chick');
+    if (chickNow && !chickShown) {
       await page.keyboard.press('Space');
       chicks++;
     }
+    chickShown = chickNow;
   });
   expect(chicks).toBeGreaterThan(0);
   return finishWithCleanCheck(page);

@@ -12,7 +12,7 @@ describe('DisclaimerScreen', () => {
     render(<DisclaimerScreen onAccept={onAccept} />);
     const accept = screen.getByTestId('accept-disclaimer');
     expect(accept).toBeDisabled();
-    expect(screen.getByText(/not medical treatment/i)).toBeInTheDocument();
+    expect(screen.getByText(/personal and educational use only/i)).toBeInTheDocument();
     expect(
       screen.getByText(/does NOT tell us whether breaking your long-standing suppression/i),
     ).toBeInTheDocument();

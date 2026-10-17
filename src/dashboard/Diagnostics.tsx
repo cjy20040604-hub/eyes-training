@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { APP_VERSION, clearErrorLogs, listErrorLogs, type ErrorLogEntry } from '../data/errorLog';
 import { Button, Card } from '../ui';
+import { ReportProblemButton } from './ReportProblem';
 
 const SHOWN = 20;
 
@@ -34,6 +35,7 @@ export function Diagnostics() {
             ))}
           </ul>
           <div className="row">
+            <ReportProblemButton small />
             <Button small onClick={reload}>
               {t('settings.diagnostics.refresh')}
             </Button>

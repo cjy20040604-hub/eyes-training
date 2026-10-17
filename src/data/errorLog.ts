@@ -21,6 +21,8 @@ export interface ErrorLogEntry {
 }
 
 export const MAX_ERROR_LOGS = 200;
+/** Dispatched on window after an error was stored (the app offers to report it). */
+export const ERROR_LOGGED_EVENT = 'bv-error-logged';
 const MAX_MESSAGE = 500;
 const MAX_STACK = 4000;
 /** The same message within this window is counted once (avoids a per-frame error flood). */
@@ -98,6 +100,8 @@ export async function logError(
       appVersion: APP_VERSION,
     };
     await db.errorLogs.put(entry);
+    if (typeof window !== 'undefined')
+      window.dispatchEvent(new CustomEvent(ERROR_LOGGED_EVENT, { detail: entry }));
     const count = await db.errorLogs.count();
     if (count > MAX_ERROR_LOGS) {
       const oldest = await db.errorLogs
