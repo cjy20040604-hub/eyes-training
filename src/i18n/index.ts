@@ -44,6 +44,12 @@ export function initI18n(locale: Locale): Promise<void> {
       interpolation: { escapeValue: false },
       returnNull: false,
     });
+    // Keep <html lang> in step with the UI: screen readers pick their voice from it, and
+    // with a wrong value Chrome offers to "translate" the page, which rewrites the DOM under
+    // React and crashes it.
+    i18next.on('languageChanged', (lng) => {
+      if (typeof document !== 'undefined') document.documentElement.lang = lng;
+    });
   }
   return changeLocale(locale);
 }

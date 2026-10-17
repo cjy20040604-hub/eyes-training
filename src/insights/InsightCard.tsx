@@ -160,7 +160,9 @@ export function InsightCard({ data }: { data: InsightData | null }) {
             {done?.englishDraft && !ai ? (
               <details>
                 <summary>{t('insights.englishVersion')}</summary>
-                <Recap draft={done.englishDraft} />
+                <div lang="en">
+                  <Recap draft={done.englishDraft} />
+                </div>
               </details>
             ) : null}
 

@@ -143,7 +143,9 @@ export function InsightLab() {
   );
 
   return (
-    <div className="insight-lab" data-testid="insight-lab">
+    // English-only developer page inside a possibly Chinese UI: not for page translation,
+    // which would rewrite the live results under React.
+    <div className="insight-lab" data-testid="insight-lab" lang="en" translate="no">
       <h1>Weekly recap: evaluation</h1>
       <p className="hint">
         Runs {EVAL_CASES.length} fixed weeks through this browser&apos;s on-device model, using the same

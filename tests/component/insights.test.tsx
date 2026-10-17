@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { dayKeyOffset } from '../../src/data/util';
-import { initI18n } from '../../src/i18n';
+import { changeLocale, initI18n } from '../../src/i18n';
 import type { InsightData } from '../../src/insights/facts';
 import { InsightCard } from '../../src/insights/InsightCard';
 import { makeCheck, makeSession } from '../fixtures/factories';
@@ -92,5 +92,14 @@ describe('weekly recap card', () => {
     data.sessions = data.sessions.slice(0, 1);
     render(<InsightCard data={data} />);
     expect(screen.getByTestId('insight-too-little')).toHaveTextContent('at least 2 sessions');
+  });
+});
+
+describe('page language', () => {
+  it('keeps <html lang> in step with the UI, so the browser does not offer to translate it', async () => {
+    await changeLocale('zh-Hans');
+    expect(document.documentElement.lang).toBe('zh-Hans');
+    await changeLocale('en');
+    expect(document.documentElement.lang).toBe('en');
   });
 });
