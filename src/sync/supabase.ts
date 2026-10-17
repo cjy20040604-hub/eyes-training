@@ -82,7 +82,7 @@ const toRow = (r: VaultDbRow): VaultRow => ({
 
 /** The vault table for the signed-in user (row-level security keeps it private). */
 export function supabaseBackend(userId: string): SyncBackend {
-  const table = () => supabase().from('vaults');
+  const table = () => supabase().from('bv_vaults');
   return {
     async getVault() {
       const { data, error } = await table().select('*').eq('user_id', userId);

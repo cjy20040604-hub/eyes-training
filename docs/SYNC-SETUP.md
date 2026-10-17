@@ -7,11 +7,12 @@ Without this setup the app works exactly as before: no accounts, no network requ
 
 ## 1. Create a Supabase project (the project owner does this)
 
-1. Sign up at <https://supabase.com> and create a new project (the free tier is enough).
+1. Sign up at <https://supabase.com> and create a new project (the free tier is enough). An
+   existing project works too: the table is named `bv_vaults` so it does not clash with other apps.
 2. **SQL Editor → New query**: paste [`supabase/schema.sql`](../supabase/schema.sql) and run it.
-3. **Authentication → URL Configuration**: set _Site URL_ to the app's address
-   (`https://cjy20040604-hub.github.io/eyes-training/`) and add it under _Redirect URLs_
-   (used by email confirmation and password reset links).
+3. **Authentication → URL Configuration**: add `https://cjy20040604-hub.github.io/eyes-training/**`
+   under _Redirect URLs_ (email confirmation and password reset links return there; the app
+   passes its own address, so a _Site URL_ that belongs to another app can stay as it is).
 4. **Authentication → Providers → Email**: keep _Confirm email_ on (recommended).
 5. **Project Settings → API**: copy the _Project URL_ and the _anon public_ key. The anon key
    is meant to be public; access is limited by the row-level security in `schema.sql`.
@@ -33,7 +34,7 @@ When configured, the page's Content Security Policy allows exactly that Supabase
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sign-in         | Supabase Auth (email + password, at least 8 characters).                                                                                                                                                                               |
 | Encryption      | A **separate** sync passphrase (at least 10 characters) → PBKDF2-SHA-256, 600 000 rounds, random salt → AES-256-GCM. The passphrase never leaves the device; the derived key can be remembered on the device as a non-extractable key. |
-| Storage         | One row per user in `vaults`: version, salt, IV, ciphertext, device label.                                                                                                                                                             |
+| Storage         | One row per user in `bv_vaults`: version, salt, IV, ciphertext, device label.                                                                                                                                                          |
 | Sync            | Download → decrypt → merge record by record (`src/sync/merge.ts`) → save → upload with `version + 1`, accepted only if nobody else uploaded meanwhile (otherwise retried).                                                             |
 | When            | When the app starts and after each session (if signed in and the key is remembered), or with "Sync now".                                                                                                                               |
 | Lost passphrase | The cloud copy cannot be decrypted by anyone. Delete it and set a new passphrase; local data on each device is unaffected.                                                                                                             |

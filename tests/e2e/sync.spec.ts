@@ -84,7 +84,7 @@ async function handle(server: FakeServer, route: Route) {
   }
   if (url.pathname === '/auth/v1/logout')
     return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } });
-  if (url.pathname === '/rest/v1/vaults') {
+  if (url.pathname === '/rest/v1/bv_vaults') {
     const method = req.method();
     if (method === 'GET') return json(200, server.vault ? [server.vault] : []);
     if (method === 'POST') {
