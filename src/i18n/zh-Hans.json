@@ -1048,7 +1048,8 @@
       "checks-failed": "AI 草稿两次都没有通过核查，因此显示规则生成的摘要。",
       "error": "本机模型这次没能生成回顾，因此显示规则生成的摘要。",
       "no-translator": "本机无法翻译 AI 回顾（模型目前只能写英文），因此显示规则生成的摘要。",
-      "translation-failed": "AI 回顾的中文翻译没有通过核查，因此显示规则生成的摘要。"
+      "translation-failed": "AI 回顾的中文翻译没有通过核查，因此显示规则生成的摘要。",
+      "timeout": "本机模型响应太慢，因此显示规则生成的摘要。"
     },
     "englishVersion": "AI 版本（英文）",
     "factsTitle": "AI 拿到了哪些信息",

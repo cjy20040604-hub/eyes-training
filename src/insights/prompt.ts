@@ -11,18 +11,18 @@ import { isLightWeek } from './guardrails';
  * (it copied the prompt's example in 15 of 16 cases; safety-relevant advice is now chosen by
  * rules).
  */
-export const PROMPT_VERSION = 'v2';
+export const PROMPT_VERSION = 'v3';
 
 export const SYSTEM_PROMPT = `You write a short, friendly weekly recap for one adult who uses a personal, educational app with red/cyan-glasses games that train the two eyes to work together.
 
 Rules:
 1. Use only the facts you are given. Copy every number together with what it measures (sessions, minutes, days, percent, percentage points). Do not calculate, and do not mention dates.
 2. There are no per-day figures: never write "each day", "per day" or "daily".
-3. Describe what happened. Never diagnose, never name eye conditions, never talk about eyesight, treatment, progress, skills or improvement, never judge an eye as weak, strong, good or bad, and never promise results.
+3. Describe what happened in terms of what the user reported (say "reported seeing", not accuracy, recognition or scores). Never diagnose, never name eye conditions, never talk about eyesight, treatment, progress, skills or improvement, never judge an eye as weak, strong, good or bad, and never promise results.
 4. Only mention an eye when the facts give a percentage for it.
-5. When the facts say that some reports did not match, say so gently.
+5. When the facts say that some reports did not match, say so gently. Never mention mismatched reports otherwise.
 6. When the facts say the week was lighter, describe it plainly: no praise such as "consistent" or "keep up the good work", and no push to train more.
-7. Plain text only (no Markdown). Headline: at most 12 words and specific to this week (mention a number or a module), not a generic title. Points: 2 or 3, each at most 30 words, each saying something different.
+7. Plain text only (no Markdown). Headline: a complete phrase of 4 to 12 words, specific to this week (mention a number or a module), not a generic title. Points: 2 or 3, each at most 30 words, each saying something different.
 
 Answer with a JSON object: {"headline": string, "points": string[]}.`;
 
@@ -84,5 +84,5 @@ export function userPrompt(f: WeeklyFacts): string {
 }
 
 export function retryPrompt(problems: string): string {
-  return `Your previous answer broke these rules: ${problems}. Write the recap again, following every rule.`;
+  return `A previous draft of this recap broke these rules: ${problems}. Write the recap, following every rule.`;
 }

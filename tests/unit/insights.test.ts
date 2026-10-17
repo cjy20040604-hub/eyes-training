@@ -307,8 +307,40 @@ describe('recap pipeline', () => {
     expect(r).toMatchObject({ source: 'template', reason: 'checks-failed', attempts: 2 });
     expect(r.problems[1]).toEqual(['shape']);
     expect(r.draft.headline).toContain('5 sessions');
-    const e = await runInsight(F, { kind: 'ok' }, deps(scripted(new Error('model crashed'))));
-    expect(e).toMatchObject({ source: 'template', reason: 'error' });
+    const e = await runInsight(
+      F,
+      { kind: 'ok' },
+      deps(scripted(new Error('model crashed'), new Error('model crashed again'))),
+    );
+    expect(e).toMatchObject({ source: 'template', reason: 'error', attempts: 2 });
+    expect(e.errors).toEqual(['Error: model crashed', 'Error: model crashed again']);
+  });
+
+  it('counts a failed call as an attempt and starts the retry from the facts', async () => {
+    const w = scripted(new Error('session lost'), good);
+    const r = await runInsight(F, { kind: 'ok' }, deps(w));
+    expect(r).toMatchObject({ source: 'model', attempts: 2, problems: [['error:Error']] });
+    expect(w.calls).toEqual([undefined, undefined]); // no corrective feedback after an error
+  });
+
+  it('gives up on a call that hangs, instead of waiting for minutes', async () => {
+    const hang: Writer = { write: () => new Promise(() => {}), destroy: () => {} };
+    const r = await runInsight(F, { kind: 'ok' }, deps(hang, { timeoutMs: 20 }));
+    expect(r).toMatchObject({ source: 'template', reason: 'timeout', attempts: 2 });
+    expect(r.problems).toEqual([['timeout:TimeoutError'], ['timeout:TimeoutError']]);
+    expect(r.errors[0]).toMatch(/^TimeoutError: No answer within/);
+  });
+
+  it('still stops at once when the user leaves the page', async () => {
+    const controller = new AbortController();
+    const hang: Writer = { write: () => new Promise(() => {}), destroy: () => {} };
+    const pending = runInsight(
+      F,
+      { kind: 'ok' },
+      deps(hang, { signal: controller.signal, timeoutMs: 10_000 }),
+    );
+    controller.abort();
+    await expect(pending).rejects.toBeDefined();
   });
 
   it('never calls the model when the gate is closed or there is no model', async () => {
@@ -468,6 +500,62 @@ describe('regressions from the first real evaluation', () => {
   });
 });
 
+/** Real outputs from the second evaluation run (prompt v2, 2026-10-18). */
+describe('regressions from the second real evaluation', () => {
+  const facts = (id: string) => EVAL_CASES.find((c) => c.id === id)!.facts;
+  const withTip = (id: string, d: Omit<Draft, 'suggestion'>): Draft => ({
+    ...d,
+    suggestion: templateDraft(facts(id), i18n.getFixedT('en')).suggestion,
+  });
+
+  it('rejects a mismatch that did not happen, a cut-off headline and measurement wording', () => {
+    const leftDown = withTip('left-down', {
+      headline: 'Week of 4 Sessions: Reduced Training Time, Some Reporting Mismatches',
+      points: ["This week included 4 sessions, a decrease of 1 from the previous week's 5 sessions."],
+    });
+    const perfect = withTip('perfect', {
+      headline: 'Week of',
+      points: ["You completed 5 sessions this week, matching last week's total of 5 sessions."],
+    });
+    const steady = withTip('steady', {
+      headline: 'Line Them Up and Both Eyes On Modules Trained This Week',
+      points: [
+        "Reports indicate that the left eye's symbol recognition increased by 1 percentage point this week, reporting 90% accuracy.",
+      ],
+    });
+    expect(checkDraft(leftDown, facts('left-down'))).toContain('claim:mismatch');
+    expect(checkDraft(perfect, facts('perfect'))).toEqual(['incomplete:headline']); // "matching" is not a claim
+    expect(checkDraft(steady, facts('steady'))).toEqual(['wording:measurement']);
+  });
+
+  it('accepts the v2 outputs that were right, including week-over-week changes', () => {
+    const bigDrop = withTip('big-drop', {
+      headline: 'Line Them Up Module: Fewer Sessions This Week',
+      points: [
+        "This week included 2 sessions of the 'Line Them Up' module, totaling 16 minutes of training time.",
+        'You trained for 1 of the last 7 days this week, compared to 6 days last week.',
+        'The left eye reported seeing 75% of the check symbols, down 4 percentage points from last week, while the right eye reported 100%.',
+      ],
+    });
+    const manyModules = withTip('many-modules', {
+      headline: 'More Sessions and Minutes Spent Training This Week',
+      points: [
+        'You increased your training sessions to 7 this week, up from 5 last week.',
+        'Reports from this week show the right eye seeing 93% of the check symbols, an increase of 3 percentage points from the previous week. The left eye reporting 86% of check symbols were seen, up 6 percentage points.',
+      ],
+    });
+    const falseAlarms = withTip('false-alarms', {
+      headline: 'Stretch Module: Consistent Sessions and Time This Week',
+      points: [
+        "In 3 sessions, there were reports that didn't match, but the difficulty level remained the same.",
+      ],
+    });
+    expect(checkDraft(bigDrop, facts('big-drop'))).toEqual([]);
+    expect(checkDraft(manyModules, facts('many-modules'))).toEqual([]);
+    expect(checkDraft(falseAlarms, facts('false-alarms'))).toEqual([]);
+  });
+});
+
 describe('model output parsing', () => {
   it('reads JSON, with or without a code fence', () => {
     const d = { headline: 'h', points: ['p'], suggestion: 's' };
@@ -510,5 +598,18 @@ describe('evaluation set', () => {
     // Quality checks: a generic headline is flagged.
     const generic = softChecks(doubtful, { ...silent, headline: 'Consistent practice this week' });
     expect(generic.find((c) => c.id === 'specific-headline')?.passed).toBe(false);
+  });
+});
+
+describe('headline completeness', () => {
+  it('does not mistake a module name ending in "On" for a cut-off headline', () => {
+    const f = EVAL_CASES.find((c) => c.id === 'steady')!.facts;
+    const d: Draft = {
+      headline: 'Practice This Week: Line Them Up & Both Eyes On',
+      points: ['You completed 6 sessions this week.'],
+      suggestion: templateDraft(f, i18n.getFixedT('en')).suggestion,
+    };
+    expect(checkDraft(d, f)).toEqual([]);
+    expect(checkDraft({ ...d, headline: 'Six sessions with' }, f)).toEqual(['incomplete:headline']);
   });
 });

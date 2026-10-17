@@ -31,8 +31,9 @@ export const LIMITS = { headline: 120, point: 240, suggestion: 240, minPoints: 1
 export const DRAFT_SCHEMA = {
   type: 'object',
   properties: {
-    headline: { type: 'string' },
-    points: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 3 },
+    // Length limits also bound generation (v3: two calls ran for minutes before failing).
+    headline: { type: 'string', maxLength: 120 },
+    points: { type: 'array', items: { type: 'string', maxLength: 240 }, minItems: 1, maxItems: 3 },
   },
   required: ['headline', 'points'],
   additionalProperties: false,
@@ -60,6 +61,7 @@ export const BANNED_EN: Rule[] = [
   { id: 'medical', re: /\bmedic|prescri|\bclinical/i },
   { id: 'promise', re: /guarantee|permanent|will (improve|fix|restore|get better)|fixed for good/i },
   { id: 'outcome', re: /\bprogress|\bskills?\b|improv/i },
+  { id: 'measurement', re: /accura|recogni/i },
   {
     id: 'overtraining',
     re: /push through|ignore (the |any |your )?(pain|discomfort|symptom|headache|double)|(train|practi[cs]e|play) (longer|harder|more)|longer sessions|extra sessions?/i,
@@ -79,6 +81,7 @@ export const BANNED_ZH: Rule[] = [
   { id: 'medical', re: /医学|医疗|处方|临床/ },
   { id: 'promise', re: /保证|永久|一定会|肯定会/ },
   { id: 'outcome', re: /进步|进展|技能/ },
+  { id: 'measurement', re: /准确率|识别率|正确率/ },
   { id: 'overtraining', re: /坚持忍住|忽略(不适|疼痛|头痛|复视)|练更久|更长时间|加练|多练/ },
 ];
 
@@ -98,6 +101,10 @@ export function isLightWeek(f: WeeklyFacts): boolean {
 }
 
 const MISMATCH_MENTION = /match|doubt|inconsistent|line up|agree|did(n't| not) raise|not raise/i;
+/** Stricter: an actual claim that reports did not match ("matching last week" is not one). */
+const MISMATCH_CLAIM = /did(n't| not)( quite)? match|mismatch|doubt|inconsisten|did(n't| not) agree/i;
+/** A headline that stops mid-phrase ("Week of"). */
+const INCOMPLETE = /\b(of|the|a|an|and|or|to|with|for|in|on|at|by|from)\s*[.:!-]?$/i;
 
 /** Which values each unit may take, from the facts. */
 function unitValues(f: WeeklyFacts) {
@@ -184,9 +191,16 @@ export function checkDraft(draft: unknown, facts: WeeklyFacts, lang: 'en' | 'zh'
   if (d.points.some((p) => p.length > LIMITS.point)) problems.push('length:point');
 
   // Module names ("Both Eyes On", "Don't Lose the Left") are not claims.
-  let text = [d.headline, ...d.points, d.suggestion].join('\n');
-  for (const m of facts.thisWeek.modules) text = text.split(m.name).join('(module)');
-  const description = [d.headline, ...d.points].join('\n');
+  const unname = (s: string) =>
+    facts.thisWeek.modules.reduce((acc, m) => acc.split(m.name).join('(module)'), s);
+  const text = unname([d.headline, ...d.points, d.suggestion].join('\n'));
+  const description = unname([d.headline, ...d.points].join('\n'));
+  if (
+    lang === 'en' &&
+    d.headline.trim() &&
+    (d.headline.trim().split(/\s+/).length < 3 || INCOMPLETE.test(unname(d.headline).trim()))
+  )
+    problems.push('incomplete:headline');
 
   for (const rule of lang === 'en' ? BANNED_EN : BANNED_ZH) {
     if (rule.re.test(text)) problems.push(`wording:${rule.id}`);
@@ -212,6 +226,7 @@ export function checkDraft(draft: unknown, facts: WeeklyFacts, lang: 'en' | 'zh'
     )
       problems.push('framing:praise-light-week');
     if (c.doubtfulSessions > 0 && !MISMATCH_MENTION.test(description)) problems.push('missing:mismatch');
+    if (c.doubtfulSessions === 0 && MISMATCH_CLAIM.test(description)) problems.push('claim:mismatch');
   }
   return problems;
 }
@@ -231,7 +246,11 @@ export function describeProblems(problems: string[]): string {
         case 'claim':
           return detail === 'per-day'
             ? 'there are no per-day figures; do not say "each day", "per day" or "daily"'
-            : 'do not mention an eye that had no check points';
+            : detail === 'mismatch'
+              ? 'all reports matched this week; do not mention mismatches'
+              : 'do not mention an eye that had no check points';
+        case 'incomplete':
+          return 'the headline is incomplete; write a complete phrase of 4 to 12 words';
         case 'framing':
           return 'training was lighter than the week before: describe it plainly, without calling it consistent or praising it';
         case 'missing':

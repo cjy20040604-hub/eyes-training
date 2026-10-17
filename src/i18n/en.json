@@ -1048,7 +1048,8 @@
       "checks-failed": "The AI draft did not pass the checks twice, so the rule-based summary is shown.",
       "error": "The on-device model could not write a recap this time, so the rule-based summary is shown.",
       "no-translator": "The AI recap could not be translated on this device, so the rule-based summary is shown.",
-      "translation-failed": "The translation of the AI recap did not pass the checks, so the rule-based summary is shown."
+      "translation-failed": "The translation of the AI recap did not pass the checks, so the rule-based summary is shown.",
+      "timeout": "The on-device model took too long, so the rule-based summary is shown."
     },
     "englishVersion": "AI version (English)",
     "factsTitle": "What the AI was given",

@@ -9,7 +9,14 @@ import type { TextTranslator, Writer } from './onDevice';
  */
 
 export type FallbackReason =
-  'safety' | 'too-little' | 'no-model' | 'checks-failed' | 'error' | 'no-translator' | 'translation-failed';
+  | 'safety'
+  | 'too-little'
+  | 'no-model'
+  | 'checks-failed'
+  | 'error'
+  | 'timeout'
+  | 'no-translator'
+  | 'translation-failed';
 
 export interface InsightResult {
   source: 'model' | 'template';
@@ -19,8 +26,10 @@ export interface InsightResult {
   englishDraft?: Draft;
   /** Model calls made (0, 1 or 2). */
   attempts: number;
-  /** Guardrail findings of every rejected draft, in order. */
+  /** Guardrail findings of every rejected draft (or the error of a failed call), in order. */
   problems: string[][];
+  /** Messages of failed model calls ("TimeoutError: …"), for diagnosis. */
+  errors: string[];
   ms: number;
 }
 
@@ -34,9 +43,51 @@ export interface InsightDeps {
   translator?: TextTranslator | null;
   signal?: AbortSignal;
   now?: () => number;
+  /** Per-call limit; a call that takes longer counts as a failed attempt. */
+  timeoutMs?: number;
 }
 
 export const MAX_ATTEMPTS = 2;
+
+/**
+ * v3: the second real evaluation had model calls that hung for 4 to 6 minutes before
+ * failing. Normal calls take 2 to 5 s, so 20 s is a generous limit.
+ */
+export const ATTEMPT_TIMEOUT_MS = 20_000;
+
+const isTimeout = (e: unknown) => (e as { name?: string } | null)?.name === 'TimeoutError';
+
+/** Runs one model call with a time limit, still honouring the caller's abort signal. */
+function withTimeout<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  ms: number,
+  outer?: AbortSignal,
+): Promise<T> {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort(outer?.reason);
+  outer?.addEventListener('abort', onAbort, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new DOMException(`No answer within ${ms / 1000} s`, 'TimeoutError');
+      controller.abort(err);
+      reject(err);
+    }, ms);
+  });
+  const aborted = new Promise<never>((_, reject) =>
+    outer?.addEventListener(
+      'abort',
+      () => reject(outer.reason ?? new DOMException('Aborted', 'AbortError')),
+      {
+        once: true,
+      },
+    ),
+  );
+  return Promise.race([run(controller.signal), timeout, aborted]).finally(() => {
+    clearTimeout(timer);
+    outer?.removeEventListener('abort', onAbort);
+  });
+}
 
 export async function runInsight(
   facts: WeeklyFacts,
@@ -47,10 +98,12 @@ export async function runInsight(
   const t0 = now();
   const problems: string[][] = [];
   let attempts = 0;
-  const done = (r: Omit<InsightResult, 'attempts' | 'problems' | 'ms'>): InsightResult => ({
+  const errors: string[] = [];
+  const done = (r: Omit<InsightResult, 'attempts' | 'problems' | 'errors' | 'ms'>): InsightResult => ({
     ...r,
     attempts,
     problems,
+    errors,
     ms: Math.round(now() - t0),
   });
   const fallback = (reason: FallbackReason, englishDraft?: Draft) =>
@@ -62,24 +115,37 @@ export async function runInsight(
   // The model writes the description; the suggestion comes from the rules.
   const englishSuggestion = (deps.englishTemplate ?? deps.template)(facts).suggestion;
   let english: Draft | null = null;
-  try {
-    let feedback: string | undefined;
-    while (attempts < MAX_ATTEMPTS && !english) {
-      attempts += 1;
-      const raw = await deps.writer.write(facts, feedback, deps.signal);
-      const draft = raw && typeof raw === 'object' ? { ...raw, suggestion: englishSuggestion } : raw;
-      const found = checkDraft(draft, facts, 'en');
-      if (found.length === 0) english = draft as Draft;
-      else {
-        problems.push(found);
-        feedback = describeProblems(found);
-      }
+  let lastFailure: 'checks' | 'error' | 'timeout' = 'checks';
+  let feedback: string | undefined;
+  while (attempts < MAX_ATTEMPTS && !english) {
+    attempts += 1;
+    let raw: unknown;
+    try {
+      raw = await withTimeout(
+        (signal) => deps.writer!.write(facts, feedback, signal),
+        deps.timeoutMs ?? ATTEMPT_TIMEOUT_MS,
+        deps.signal,
+      );
+    } catch (e) {
+      if (deps.signal?.aborted) throw e;
+      // A failed or hung call counts as an attempt; the next one starts again from the facts.
+      lastFailure = isTimeout(e) ? 'timeout' : 'error';
+      const name = (e as { name?: string } | null)?.name ?? 'Error';
+      problems.push([`${lastFailure}:${name}`]);
+      errors.push(e instanceof Error || e instanceof DOMException ? `${e.name}: ${e.message}` : String(e));
+      feedback = undefined;
+      continue;
     }
-  } catch (e) {
-    if (deps.signal?.aborted) throw e;
-    return fallback('error');
+    const draft = raw && typeof raw === 'object' ? { ...raw, suggestion: englishSuggestion } : raw;
+    const found = checkDraft(draft, facts, 'en');
+    if (found.length === 0) english = draft as Draft;
+    else {
+      lastFailure = 'checks';
+      problems.push(found);
+      feedback = describeProblems(found);
+    }
   }
-  if (!english) return fallback('checks-failed');
+  if (!english) return fallback(lastFailure === 'checks' ? 'checks-failed' : lastFailure);
   if (deps.lang === 'en') return done({ source: 'model', draft: english });
 
   if (!deps.translator) return fallback('no-translator', english);

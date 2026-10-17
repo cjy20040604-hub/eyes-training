@@ -42,6 +42,11 @@ function summarizeRows(rows: Row[]) {
     passFirst: rows.filter((r) => r.outcome === 'pass-first').length,
     passAny: rows.filter((r) => r.outcome !== 'fallback').length,
     fallback: rows.filter((r) => r.outcome === 'fallback').length,
+    failedCalls: rows.reduce((a, r) => a + r.result.errors.length, 0),
+    timeouts: rows.reduce(
+      (a, r) => a + r.result.errors.filter((e) => e.startsWith('TimeoutError')).length,
+      0,
+    ),
     softPassed: soft.filter((s) => s.passed).length,
     distinctHeadlines: new Set(rows.map((r) => r.result.draft.headline.toLowerCase())).size,
     softTotal: soft.length,
@@ -135,6 +140,7 @@ export function InsightLab() {
         id: r.id,
         outcome: r.outcome,
         reason: r.result.reason,
+        errors: r.result.errors,
         attempts: r.result.attempts,
         ms: r.result.ms,
         problems: r.result.problems,
@@ -219,6 +225,10 @@ export function InsightLab() {
               <dd data-testid="lab-fallback">
                 {s.fallback} ({pct(s.fallback, s.cases)})
               </dd>
+              <dt>Failed model calls (of which timeouts)</dt>
+              <dd data-testid="lab-errors">
+                {s.failedCalls} ({s.timeouts})
+              </dd>
               <dt>Prompt version</dt>
               <dd data-testid="lab-version">{PROMPT_VERSION}</dd>
               <dt>Distinct headlines</dt>
@@ -233,7 +243,7 @@ export function InsightLab() {
               <dd data-testid="lab-latency">
                 median {(s.medianMs / 1000).toFixed(1)} s, p90 {(s.p90Ms / 1000).toFixed(1)} s
               </dd>
-              <dt>Rejections by rule</dt>
+              <dt>Rejections and errors by kind</dt>
               <dd data-testid="lab-problems">
                 {Object.entries(s.problems)
                   .sort((a, b) => b[1] - a[1])
@@ -251,6 +261,11 @@ export function InsightLab() {
                 {r.about} · {(r.result.ms / 1000).toFixed(1)} s · attempts {r.result.attempts}
                 {r.result.reason ? ` · ${r.result.reason}` : ''}
               </p>
+              {r.result.errors.length ? (
+                <p>
+                  Errors: <code>{r.result.errors.join(' | ')}</code>
+                </p>
+              ) : null}
               {r.result.problems.length ? (
                 <p>
                   Rejected: <code>{r.result.problems.map((p) => p.join(', ')).join(' | ')}</code>

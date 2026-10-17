@@ -15,6 +15,7 @@ interface Monitor {
 }
 interface LmSession {
   prompt(input: string, options?: { responseConstraint?: object; signal?: AbortSignal }): Promise<string>;
+  clone?(options?: { signal?: AbortSignal }): Promise<LmSession>;
   destroy(): void;
 }
 interface LmStatic {
@@ -77,18 +78,22 @@ export interface Writer {
 export async function createWriter(onProgress?: Progress): Promise<Writer> {
   const lm = g.LanguageModel;
   if (!lm) throw new Error('No built-in language model in this browser');
-  const session = await lm.create({
-    ...LM_OPTIONS,
-    initialPrompts: [{ role: 'system', content: SYSTEM_PROMPT }],
-    monitor: monitor(onProgress),
-  });
+  const options = { ...LM_OPTIONS, initialPrompts: [{ role: 'system', content: SYSTEM_PROMPT }] };
+  const base = await lm.create({ ...options, monitor: monitor(onProgress) });
   return {
     async write(facts, problems, signal) {
-      const input = problems ? retryPrompt(problems) : userPrompt(facts);
-      const raw = await session.prompt(input, { responseConstraint: DRAFT_SCHEMA, signal });
-      return parseDraft(raw);
+      // v3: every attempt gets a fresh session (a clone of the system prompt only); in the
+      // second evaluation, retries inside the same conversation failed.
+      const session = base.clone ? await base.clone({ signal }) : await lm.create(options);
+      try {
+        const input = problems ? `${userPrompt(facts)}\n\n${retryPrompt(problems)}` : userPrompt(facts);
+        const raw = await session.prompt(input, { responseConstraint: DRAFT_SCHEMA, signal });
+        return parseDraft(raw);
+      } finally {
+        session.destroy();
+      }
     },
-    destroy: () => session.destroy(),
+    destroy: () => base.destroy(),
   };
 }
 

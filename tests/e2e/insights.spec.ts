@@ -79,7 +79,7 @@ test('the evaluation page runs every case and reports the rates', async ({ page 
   // The scripted model never mentions mismatched reports: both such weeks fall back.
   await expect(page.getByTestId('lab-pass-first')).toHaveText('14 (88%)');
   await expect(page.getByTestId('lab-fallback')).toHaveText('2 (13%)');
-  await expect(page.getByTestId('lab-version')).toHaveText('v2');
+  await expect(page.getByTestId('lab-version')).toHaveText('v3');
   await expect(page.getByTestId('lab-row-doubtful')).toContainText('attempts 2');
   await expect(page.getByTestId('lab-row-doubtful')).toContainText('missing:mismatch');
 });
