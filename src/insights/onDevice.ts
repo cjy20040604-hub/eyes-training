@@ -1,4 +1,4 @@
-import { DRAFT_SCHEMA, type Draft } from './guardrails';
+import { DRAFT_SCHEMA, type ModelDraft } from './guardrails';
 import { SYSTEM_PROMPT, retryPrompt, userPrompt } from './prompt';
 import type { WeeklyFacts } from './facts';
 
@@ -107,14 +107,30 @@ export async function createTranslator(onProgress?: Progress): Promise<TextTrans
   };
 }
 
-/** The model is asked for JSON; tolerate a code fence around it. */
+/** Removes Markdown the model sometimes adds (`**3**`), which would show literally. */
+export function plainText(s: string): string {
+  return s
+    .replace(/\*\*|__|`/g, '')
+    .replace(/^\s*(#+|[-*•])\s+/, '')
+    .trim();
+}
+
+/** The model is asked for JSON; tolerate a code fence around it, and strip Markdown. */
 export function parseDraft(raw: string): unknown {
   const body = raw
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '');
   try {
-    return JSON.parse(body) as Draft;
+    const d = JSON.parse(body) as Partial<ModelDraft> | null;
+    if (!d || typeof d !== 'object') return d;
+    return {
+      ...d,
+      headline: typeof d.headline === 'string' ? plainText(d.headline) : d.headline,
+      points: Array.isArray(d.points)
+        ? d.points.map((p) => (typeof p === 'string' ? plainText(p) : p))
+        : d.points,
+    };
   } catch {
     return null;
   }

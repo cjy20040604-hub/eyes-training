@@ -99,6 +99,7 @@ export function InsightCard({ data }: { data: InsightData | null }) {
       const result = await runInsight(facts, gate, {
         lang,
         template: (f) => templateDraft(f, t),
+        englishTemplate: (f) => templateDraft(f, i18n.getFixedT('en')),
         writer,
         translator,
         signal: controller.signal,

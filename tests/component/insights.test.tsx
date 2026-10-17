@@ -65,7 +65,9 @@ describe('weekly recap card', () => {
     expect(model.create).toHaveBeenCalledWith(
       expect.objectContaining({ initialPrompts: [expect.objectContaining({ role: 'system' })] }),
     );
-    expect(model.prompt.mock.calls[0]![0]).toContain('"seenPercent":80');
+    expect(model.prompt.mock.calls[0]![0]).toContain(
+      'reported seeing 80% of the check symbols shown only to the left eye',
+    );
   });
 
   it('retries a draft with an invented number, then falls back and says why', async () => {

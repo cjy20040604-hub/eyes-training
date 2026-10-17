@@ -26,7 +26,10 @@ export interface InsightResult {
 
 export interface InsightDeps {
   lang: 'en' | 'zh';
+  /** Rule-based recap in the output language; its suggestion is also used with AI text. */
   template: (facts: WeeklyFacts) => Draft;
+  /** The English rule-based recap (defaults to `template`), for checking English drafts. */
+  englishTemplate?: (facts: WeeklyFacts) => Draft;
   writer: Writer | null;
   translator?: TextTranslator | null;
   signal?: AbortSignal;
@@ -56,12 +59,15 @@ export async function runInsight(
   if (gate.kind !== 'ok') return fallback(gate.kind);
   if (!deps.writer) return fallback('no-model');
 
+  // The model writes the description; the suggestion comes from the rules.
+  const englishSuggestion = (deps.englishTemplate ?? deps.template)(facts).suggestion;
   let english: Draft | null = null;
   try {
     let feedback: string | undefined;
     while (attempts < MAX_ATTEMPTS && !english) {
       attempts += 1;
-      const draft = await deps.writer.write(facts, feedback, deps.signal);
+      const raw = await deps.writer.write(facts, feedback, deps.signal);
+      const draft = raw && typeof raw === 'object' ? { ...raw, suggestion: englishSuggestion } : raw;
       const found = checkDraft(draft, facts, 'en');
       if (found.length === 0) english = draft as Draft;
       else {
@@ -82,7 +88,7 @@ export async function runInsight(
     const zh: Draft = {
       headline: await tr(english.headline),
       points: await Promise.all(english.points.map(tr)),
-      suggestion: await tr(english.suggestion),
+      suggestion: deps.template(facts).suggestion,
     };
     const found = checkDraft(zh, facts, 'zh');
     if (found.length) {

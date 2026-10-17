@@ -12,6 +12,7 @@ import {
   type TextTranslator,
 } from './onDevice';
 import { runInsight, type InsightResult } from './pipeline';
+import { PROMPT_VERSION } from './prompt';
 import { templateDraft } from './template';
 
 interface Row {
@@ -42,6 +43,7 @@ function summarizeRows(rows: Row[]) {
     passAny: rows.filter((r) => r.outcome !== 'fallback').length,
     fallback: rows.filter((r) => r.outcome === 'fallback').length,
     softPassed: soft.filter((s) => s.passed).length,
+    distinctHeadlines: new Set(rows.map((r) => r.result.draft.headline.toLowerCase())).size,
     softTotal: soft.length,
     medianMs: median(ms),
     p90Ms: p90(ms),
@@ -92,6 +94,7 @@ export function InsightLab() {
             {
               lang: zh ? 'zh' : 'en',
               template: (f) => templateDraft(f, zh ? zhT : en),
+              englishTemplate: (f) => templateDraft(f, en),
               writer,
               translator,
             },
@@ -125,6 +128,7 @@ export function InsightLab() {
     {
       ranAt: new Date().toISOString(),
       userAgent: navigator.userAgent,
+      promptVersion: PROMPT_VERSION,
       translate: zh,
       summary: s,
       rows: rows.map((r) => ({
@@ -214,6 +218,12 @@ export function InsightLab() {
               <dt>Fell back to the rule-based recap</dt>
               <dd data-testid="lab-fallback">
                 {s.fallback} ({pct(s.fallback, s.cases)})
+              </dd>
+              <dt>Prompt version</dt>
+              <dd data-testid="lab-version">{PROMPT_VERSION}</dd>
+              <dt>Distinct headlines</dt>
+              <dd data-testid="lab-distinct">
+                {s.distinctHeadlines} / {s.cases}
               </dd>
               <dt>Content checks passed</dt>
               <dd data-testid="lab-soft">

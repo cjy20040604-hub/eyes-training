@@ -1,23 +1,86 @@
-import { factsForModel, type WeeklyFacts } from './facts';
+import type { WeeklyFacts } from './facts';
+import { isLightWeek } from './guardrails';
 
 /**
  * Prompt for the weekly recap. The model writes English (the on-device model's output
  * languages do not include Chinese yet); Chinese users get an on-device translation.
+ *
+ * v2, after the first evaluation on the real model: facts are given as short labelled
+ * sentences instead of nested JSON (the model had read a week-over-week change as a count),
+ * each number travels with its unit, and the suggestion is no longer written by the model
+ * (it copied the prompt's example in 15 of 16 cases; safety-relevant advice is now chosen by
+ * rules).
  */
+export const PROMPT_VERSION = 'v2';
+
 export const SYSTEM_PROMPT = `You write a short, friendly weekly recap for one adult who uses a personal, educational app with red/cyan-glasses games that train the two eyes to work together.
 
 Rules:
-1. Use only numbers that appear in the facts JSON. Do not calculate new numbers; for differences, copy the values in "change". Do not mention dates.
-2. Describe what happened. Never diagnose, never name eye conditions, never talk about eyesight, treatment or cures, never judge an eye as weak, strong, good or bad, and never promise results.
-3. "oneEyeChecks": small symbols shown to one eye at a time; "seenPercent" is the share the user reported seeing. A null value means none were shown; then do not mention that eye.
-4. If "doubtfulSessions" is above 0, say gently that some reports did not match, so those sessions did not raise the difficulty.
-5. The suggestion must be small and calm (for example: check the glasses sit straight, keep sessions short, take the breaks). Never suggest training longer, harder or more, and never suggest ignoring discomfort.
-6. Plain English, second person, warm but factual. Headline at most 12 words. 2 or 3 points, each at most 30 words. Suggestion at most 25 words.
+1. Use only the facts you are given. Copy every number together with what it measures (sessions, minutes, days, percent, percentage points). Do not calculate, and do not mention dates.
+2. There are no per-day figures: never write "each day", "per day" or "daily".
+3. Describe what happened. Never diagnose, never name eye conditions, never talk about eyesight, treatment, progress, skills or improvement, never judge an eye as weak, strong, good or bad, and never promise results.
+4. Only mention an eye when the facts give a percentage for it.
+5. When the facts say that some reports did not match, say so gently.
+6. When the facts say the week was lighter, describe it plainly: no praise such as "consistent" or "keep up the good work", and no push to train more.
+7. Plain text only (no Markdown). Headline: at most 12 words and specific to this week (mention a number or a module), not a generic title. Points: 2 or 3, each at most 30 words, each saying something different.
 
-Answer with a JSON object: {"headline": string, "points": string[], "suggestion": string}.`;
+Answer with a JSON object: {"headline": string, "points": string[]}.`;
+
+const signed = (n: number) => (n > 0 ? `up ${n}` : n < 0 ? `down ${-n}` : 'no change');
+
+/** The facts as short sentences, each number next to its unit. */
+export function factSentences(f: WeeklyFacts): string[] {
+  const c = f.oneEyeChecks;
+  const out = [
+    `Sessions this week: ${f.thisWeek.sessions} (last week: ${f.lastWeek.sessions}; ${signed(f.change.sessions)}).`,
+    `Training time this week: ${f.thisWeek.minutes} minutes in total (last week: ${f.lastWeek.minutes} minutes).`,
+    `Days with training: ${f.thisWeek.daysTrained} of the last 7 days (last week: ${f.lastWeek.daysTrained} days).`,
+  ];
+  for (const m of f.thisWeek.modules)
+    out.push(`Module "${m.name}": ${m.sessions} sessions, ${m.minutes} minutes.`);
+  for (const [eye, now, before, change] of [
+    ['left', c.left, c.lastWeekLeft, f.change.leftSeenPoints],
+    ['right', c.right, c.lastWeekRight, f.change.rightSeenPoints],
+  ] as const) {
+    if (now.seenPercent === null) {
+      out.push(
+        `${eye === 'left' ? 'Left' : 'Right'} eye: no check symbols were shown this week. Do not mention the ${eye} eye.`,
+      );
+      continue;
+    }
+    const last =
+      before.seenPercent === null
+        ? 'no figure from last week'
+        : `last week ${before.seenPercent}%; ${change === null || change === 0 ? 'no change' : `${signed(change)} percentage points`}`;
+    out.push(
+      `${eye === 'left' ? 'Left' : 'Right'} eye: the user reported seeing ${now.seenPercent}% of the check symbols shown only to the ${eye} eye (${last}).`,
+    );
+  }
+  if (c.doubtfulSessions > 0)
+    out.push(
+      `Reports that did not match: in ${c.doubtfulSessions} sessions; those sessions did not raise the difficulty. Mention this gently.`,
+    );
+  if (c.pressesWithoutSymbol > 0)
+    out.push(`Presses when no symbol was on screen: ${c.pressesWithoutSymbol}.`);
+  if (f.difficulty.raised > 0)
+    out.push(`The app raised the difficulty automatically ${f.difficulty.raised} times.`);
+  if (f.difficulty.loweredForComfort > 0)
+    out.push(
+      `The app lowered the difficulty automatically for comfort ${f.difficulty.loweredForComfort} times.`,
+    );
+  if (isLightWeek(f))
+    out.push(
+      f.lastWeek.sessions > 0 && f.thisWeek.sessions <= 0.6 * f.lastWeek.sessions
+        ? 'This week had far fewer sessions than last week: describe it plainly, without praise such as "consistent".'
+        : `Training happened on only ${f.thisWeek.daysTrained} days this week: describe it plainly, without praise such as "consistent".`,
+    );
+  return out;
+}
 
 export function userPrompt(f: WeeklyFacts): string {
-  return `Facts (JSON):\n${JSON.stringify(factsForModel(f))}\n\nWrite this week's recap.`;
+  return `Facts:\n${factSentences(f)
+    .map((s) => `- ${s}`)
+    .join('\n')}\n\nWrite this week's recap.`;
 }
 
 export function retryPrompt(problems: string): string {

@@ -6,9 +6,14 @@ import { allowedNumbers, type WeeklyFacts } from './facts';
  *
  * What is checked:
  *  - shape and length;
- *  - no diagnostic, treatment or outcome language (this is a personal, educational tool);
- *  - nothing that pushes the user to train longer or harder or to ignore discomfort;
- *  - every number in the text appears in the facts (no invented or miscalculated numbers).
+ *  - no diagnostic, treatment, outcome or over-training wording (personal, educational tool);
+ *  - every number appears in the facts, and is used for what it measures: a percentage must
+ *    be a percentage in the facts, minutes must be minutes, and so on (v2: the first real
+ *    evaluation showed grounded numbers used for the wrong thing, e.g. a change of 6
+ *    percentage points reported as "6 points seen");
+ *  - claims the facts cannot support: per-day figures, an eye that had no check points,
+ *    praise such as "consistent" in a light week;
+ *  - required content: mismatched reports must be mentioned.
  */
 
 export interface Draft {
@@ -16,6 +21,9 @@ export interface Draft {
   points: string[];
   suggestion: string;
 }
+
+/** What the model writes. The suggestion is chosen by rules (safety-relevant advice). */
+export type ModelDraft = Omit<Draft, 'suggestion'>;
 
 export const LIMITS = { headline: 120, point: 240, suggestion: 240, minPoints: 1, maxPoints: 3 } as const;
 
@@ -25,9 +33,8 @@ export const DRAFT_SCHEMA = {
   properties: {
     headline: { type: 'string' },
     points: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 3 },
-    suggestion: { type: 'string' },
   },
-  required: ['headline', 'points', 'suggestion'],
+  required: ['headline', 'points'],
   additionalProperties: false,
 } as const;
 
@@ -36,7 +43,7 @@ interface Rule {
   re: RegExp;
 }
 
-/** English: diagnosis, conditions, treatment, outcome promises, unsafe nudges. */
+/** English: diagnosis, conditions, treatment, outcome claims, unsafe nudges. */
 export const BANNED_EN: Rule[] = [
   { id: 'diagnosis', re: /diagnos/i },
   { id: 'cure', re: /\bcur(e|es|ed|ing)\b/i },
@@ -52,6 +59,7 @@ export const BANNED_EN: Rule[] = [
   },
   { id: 'medical', re: /\bmedic|prescri|\bclinical/i },
   { id: 'promise', re: /guarantee|permanent|will (improve|fix|restore|get better)|fixed for good/i },
+  { id: 'outcome', re: /\bprogress|\bskills?\b|improv/i },
   {
     id: 'overtraining',
     re: /push through|ignore (the |any |your )?(pain|discomfort|symptom|headache|double)|(train|practi[cs]e|play) (longer|harder|more)|longer sessions|extra sessions?/i,
@@ -70,6 +78,7 @@ export const BANNED_ZH: Rule[] = [
   { id: 'vision-claim', re: /视力|立体视觉?(已|有所)?(改善|提高|恢复)/ },
   { id: 'medical', re: /医学|医疗|处方|临床/ },
   { id: 'promise', re: /保证|永久|一定会|肯定会/ },
+  { id: 'outcome', re: /进步|进展|技能/ },
   { id: 'overtraining', re: /坚持忍住|忽略(不适|疼痛|头痛|复视)|练更久|更长时间|加练|多练/ },
 ];
 
@@ -78,6 +87,81 @@ const LABELS = /\bL[1-5]\b/g;
 
 export function numbersIn(text: string): number[] {
   return (text.replace(LABELS, ' ').match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+}
+
+/** A light week: few training days, or far fewer sessions than the week before. */
+export function isLightWeek(f: WeeklyFacts): boolean {
+  return (
+    f.thisWeek.daysTrained <= 2 ||
+    (f.lastWeek.sessions > 0 && f.thisWeek.sessions <= 0.6 * f.lastWeek.sessions)
+  );
+}
+
+const MISMATCH_MENTION = /match|doubt|inconsistent|line up|agree|did(n't| not) raise|not raise/i;
+
+/** Which values each unit may take, from the facts. */
+function unitValues(f: WeeklyFacts) {
+  const abs = (xs: Array<number | null>) => new Set(xs.filter((x): x is number => x !== null).map(Math.abs));
+  const c = f.oneEyeChecks;
+  return {
+    percent: abs([
+      c.left.seenPercent,
+      c.right.seenPercent,
+      c.lastWeekLeft.seenPercent,
+      c.lastWeekRight.seenPercent,
+      100,
+    ]),
+    percentagePoints: abs([f.change.leftSeenPoints, f.change.rightSeenPoints]),
+    minutes: abs([
+      f.thisWeek.minutes,
+      f.lastWeek.minutes,
+      f.change.minutes,
+      ...f.thisWeek.modules.map((m) => m.minutes),
+    ]),
+    sessions: abs([
+      f.thisWeek.sessions,
+      f.lastWeek.sessions,
+      f.change.sessions,
+      c.doubtfulSessions,
+      f.difficulty.raised,
+      f.difficulty.loweredForComfort,
+      ...f.thisWeek.modules.map((m) => m.sessions),
+    ]),
+    days: abs([f.thisWeek.daysTrained, f.lastWeek.daysTrained, 7]),
+  };
+}
+
+const UNITS_EN: Array<[keyof ReturnType<typeof unitValues>, RegExp]> = [
+  ['percentagePoints', /(\d+(?:\.\d+)?)\s+percentage[\s-]+points?\b/gi],
+  ['percent', /(\d+(?:\.\d+)?)\s*(?:%|percent\b)/gi],
+  ['minutes', /(\d+(?:\.\d+)?)\s*(?:more\s+|fewer\s+|less\s+)?(?:minutes?|mins?)\b/gi],
+  ['sessions', /(\d+)\s*(?:more\s+|fewer\s+)?sessions?\b/gi],
+  ['days', /(\d+)\s*(?:more\s+|fewer\s+)?days?\b/gi],
+];
+
+const UNITS_ZH: Array<[keyof ReturnType<typeof unitValues>, RegExp]> = [
+  ['percentagePoints', /(\d+(?:\.\d+)?)\s*个?百分点/g],
+  ['percent', /(\d+(?:\.\d+)?)\s*%/g],
+  ['minutes', /(\d+(?:\.\d+)?)\s*分钟/g],
+  ['days', /(\d+)\s*天/g],
+];
+
+function unitProblems(text: string, f: WeeklyFacts, lang: 'en' | 'zh'): string[] {
+  const values = unitValues(f);
+  const out: string[] = [];
+  for (const [unit, re] of lang === 'en' ? UNITS_EN : UNITS_ZH) {
+    for (const m of text.matchAll(re)) {
+      const n = Number(m[1]);
+      if (!values[unit].has(n)) out.push(`unit:${unit}:${n}`);
+    }
+  }
+  // "6 points" / "6 check points" without "percentage": a change read as a count.
+  if (lang === 'en') {
+    for (const m of text.matchAll(/(\d+(?:\.\d+)?)\s+((?:[a-z-]+\s+){0,2})points?\b/gi)) {
+      if (!/percentage/i.test(m[2] ?? '')) out.push(`unit:points:${m[1]}`);
+    }
+  }
+  return out;
 }
 
 export function checkDraft(draft: unknown, facts: WeeklyFacts, lang: 'en' | 'zh' = 'en'): string[] {
@@ -99,13 +183,35 @@ export function checkDraft(draft: unknown, facts: WeeklyFacts, lang: 'en' | 'zh'
   if (d.suggestion.length > LIMITS.suggestion) problems.push('length:suggestion');
   if (d.points.some((p) => p.length > LIMITS.point)) problems.push('length:point');
 
-  const text = [d.headline, ...d.points, d.suggestion].join('\n');
+  // Module names ("Both Eyes On", "Don't Lose the Left") are not claims.
+  let text = [d.headline, ...d.points, d.suggestion].join('\n');
+  for (const m of facts.thisWeek.modules) text = text.split(m.name).join('(module)');
+  const description = [d.headline, ...d.points].join('\n');
+
   for (const rule of lang === 'en' ? BANNED_EN : BANNED_ZH) {
     if (rule.re.test(text)) problems.push(`wording:${rule.id}`);
   }
   const allowed = allowedNumbers(facts);
   for (const n of new Set(numbersIn(text))) {
     if (!allowed.has(n)) problems.push(`number:${n}`);
+  }
+  problems.push(...new Set(unitProblems(text, facts, lang)));
+
+  if (lang === 'en') {
+    if (/\b(each|per|every) day\b|\bdaily\b|\ba day\b/i.test(description)) problems.push('claim:per-day');
+    const c = facts.oneEyeChecks;
+    const anyEye = /\b(both|each) eyes?\b/i;
+    if (
+      (c.left.seenPercent === null && (/left eye/i.test(text) || anyEye.test(text))) ||
+      (c.right.seenPercent === null && (/right eye/i.test(text) || anyEye.test(text)))
+    )
+      problems.push('claim:absent-eye');
+    if (
+      isLightWeek(facts) &&
+      /consisten|steady|keep up the good work|great week|well done/i.test(description)
+    )
+      problems.push('framing:praise-light-week');
+    if (c.doubtfulSessions > 0 && !MISMATCH_MENTION.test(description)) problems.push('missing:mismatch');
   }
   return problems;
 }
@@ -114,10 +220,22 @@ export function checkDraft(draft: unknown, facts: WeeklyFacts, lang: 'en' | 'zh'
 export function describeProblems(problems: string[]): string {
   return problems
     .map((p) => {
-      const [kind, detail] = p.split(':');
+      const [kind, detail, value] = p.split(':');
       switch (kind) {
         case 'number':
           return `the number ${detail} is not in the facts; use only numbers that appear in the facts`;
+        case 'unit':
+          return detail === 'points'
+            ? `"${value} points" is unclear: changes are "percentage points", and there is no count of symbols seen`
+            : `${value} is not a ${detail === 'percentagePoints' ? 'percentage-point change' : detail} value in the facts; keep each number with what it measures`;
+        case 'claim':
+          return detail === 'per-day'
+            ? 'there are no per-day figures; do not say "each day", "per day" or "daily"'
+            : 'do not mention an eye that had no check points';
+        case 'framing':
+          return 'training was lighter than the week before: describe it plainly, without calling it consistent or praising it';
+        case 'missing':
+          return 'mention gently that some reports did not match, so those sessions did not raise the difficulty';
         case 'wording':
           return `avoid ${detail?.replace(/-/g, ' ')} wording`;
         case 'length':

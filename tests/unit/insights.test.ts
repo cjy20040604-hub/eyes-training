@@ -10,6 +10,7 @@ import {
 } from '../../src/insights/facts';
 import { checkDraft, describeProblems, numbersIn, type Draft } from '../../src/insights/guardrails';
 import { parseDraft, type TextTranslator, type Writer } from '../../src/insights/onDevice';
+import { factSentences } from '../../src/insights/prompt';
 import { runInsight } from '../../src/insights/pipeline';
 import { templateDraft } from '../../src/insights/template';
 import { makeCheck, makeSession } from '../fixtures/factories';
@@ -155,7 +156,7 @@ const GOOD: Draft[] = [
     headline: '5 sessions and 52.5 minutes this week',
     points: [
       'You trained on 4 of the last 7 days, one more session than last week.',
-      'On the left you reported seeing 70% of the one-eye check points, up 30 points from 40%.',
+      'On the left you reported seeing 70% of the one-eye check points, up 30 percentage points from 40%.',
       'Line Them Up took all of your time (L2).',
     ],
     suggestion: 'Keep the same calm routine and take the breaks the app offers.',
@@ -287,14 +288,17 @@ describe('recap pipeline', () => {
   it('shows a draft that passes the guardrails', async () => {
     const w = scripted(good);
     const r = await runInsight(F, { kind: 'ok' }, deps(w));
-    expect(r).toMatchObject({ source: 'model', draft: good, attempts: 1, problems: [] });
+    expect(r).toMatchObject({ source: 'model', attempts: 1, problems: [] });
+    expect(r.draft.points).toEqual(good.points);
+    // The suggestion is the rule-based one, not the model's.
+    expect(r.draft.suggestion).toBe(templateDraft(F, i18n.getFixedT('en')).suggestion);
   });
 
   it('retries once with the problems spelled out', async () => {
     const w = scripted(bad, good);
     const r = await runInsight(F, { kind: 'ok' }, deps(w));
     expect(r).toMatchObject({ source: 'model', attempts: 2 });
-    expect(r.problems).toEqual([['wording:eye-judgement', 'number:75']]);
+    expect(r.problems).toEqual([['wording:eye-judgement', 'number:75', 'unit:percent:75']]);
     expect(w.calls[1]).toContain('the number 75 is not in the facts');
   });
 
@@ -324,7 +328,6 @@ describe('recap pipeline', () => {
       [good.points[0]!]: '过去 7 天里您训练了 4 天。',
       [good.points[1]!]: '左眼报告看到 70%，比上周的 40% 高了 30 个百分点。',
       [good.points[2]!]: '「对齐」占用了全部时间（L2）。',
-      [good.suggestion]: '保持同样平稳的节奏，按提示休息。',
     };
     const translator = (map: (s: string) => string): TextTranslator => ({
       translate: (s) => Promise.resolve(map(s)),
@@ -334,15 +337,134 @@ describe('recap pipeline', () => {
       deps(scripted(good), { lang: 'zh', template: (f) => templateDraft(f, zhT), translator: tr });
 
     const ok = await runInsight(F, { kind: 'ok' }, zhDeps(translator((s) => dict[s] ?? s)));
-    expect(ok).toMatchObject({ source: 'model', englishDraft: good });
+    expect(ok).toMatchObject({ source: 'model', englishDraft: { headline: good.headline } });
+    expect(ok.draft.suggestion).toBe(templateDraft(F, zhT).suggestion);
     expect(ok.draft.headline).toBe('本周 5 次训练，共 52.5 分钟');
 
     const drift = await runInsight(F, { kind: 'ok' }, zhDeps(translator((s) => `${dict[s] ?? s}弱视`)));
-    expect(drift).toMatchObject({ source: 'template', reason: 'translation-failed', englishDraft: good });
+    expect(drift).toMatchObject({
+      source: 'template',
+      reason: 'translation-failed',
+      englishDraft: { headline: good.headline },
+    });
     expect(drift.draft.headline).toContain('过去 7 天');
 
     const none = await runInsight(F, { kind: 'ok' }, zhDeps(null));
-    expect(none).toMatchObject({ source: 'template', reason: 'no-translator', englishDraft: good });
+    expect(none).toMatchObject({
+      source: 'template',
+      reason: 'no-translator',
+      englishDraft: { headline: good.headline },
+    });
+  });
+});
+
+/**
+ * Real outputs of Chrome's on-device model from the first evaluation run (prompt v1,
+ * 2026-10-17). All passed the v1 guardrails; a manual review found these wrong. v2 must
+ * reject them, and must still accept the ones that were fine.
+ */
+describe('regressions from the first real evaluation', () => {
+  const facts = (id: string) => EVAL_CASES.find((c) => c.id === id)!.facts;
+  const withTip = (id: string, d: Omit<Draft, 'suggestion'>): Draft => ({
+    ...d,
+    suggestion: templateDraft(facts(id), i18n.getFixedT('en')).suggestion,
+  });
+
+  it.each([
+    [
+      'false-alarms',
+      {
+        headline: 'Consistent practice this week helps maintain skill.',
+        points: ['You trained for 3 days this week, completing 30 minutes of sessions each day.'],
+      },
+      ['claim:per-day', 'missing:mismatch', 'wording:outcome'],
+    ],
+    [
+      'many-modules',
+      {
+        headline: 'Consistent Practice This Week! Keep a Comfortable Routine.',
+        points: [
+          "You trained for 5 days this week, completing 7 sessions and 72 minutes. You worked on several modules, including 'Line Them Up' and 'Don't Lose the Left.'",
+          'You reported seeing 6 points with your left eye and 3 points with your right eye this week.',
+        ],
+      },
+      ['unit:points:6', 'unit:points:3'],
+    ],
+    [
+      'big-drop',
+      {
+        headline: 'Consistent practice this week. Keep up the good work!',
+        points: [
+          'You trained for 1 day this week, completing 2 sessions totaling 16 minutes. You reported seeing 75% of the left eye checks and 100% of the right eye checks.',
+        ],
+      },
+      ['framing:praise-light-week'],
+    ],
+    [
+      'big-rise',
+      {
+        headline: 'Good progress this week! Consistent training and engaging modules.',
+        points: ['You trained for 7 days this week, totaling 95 minutes across 9 sessions.'],
+      },
+      ['wording:outcome'],
+    ],
+  ] as const)('%s is rejected', (id, draft, rules) => {
+    expect(checkDraft(withTip(id, { ...draft, points: [...draft.points] }), facts(id))).toEqual(
+      expect.arrayContaining([...rules]),
+    );
+  });
+
+  it('accepts the outputs that were right', () => {
+    const steady = withTip('steady', {
+      headline: 'Consistent Practice This Week with Focus on Both Eyes',
+      points: [
+        "You trained for 5 days this week, totaling 60 minutes of sessions. You worked on 'Line Them Up' for 40 minutes and 'Both Eyes On' for 20 minutes.",
+        'You reported seeing 90% when a symbol was shown to each eye. Last week, these percentages were 89%.',
+      ],
+    });
+    const leftUp = withTip('left-up', {
+      headline: 'Consistent Training This Week – Keep Up the Good Work!',
+      points: [
+        'You trained for 4 days this week, completing 5 sessions totaling 52.5 minutes.',
+        'You reported seeing 70% of the left eye checks this week, up from 40% last week.',
+      ],
+    });
+    const reading = withTip('reading', {
+      headline: 'Consistent Training This Week: Practicing Two-Eye Coordination',
+      points: [
+        'You trained for 3 days this week, spending 28 minutes on Two-Eye Reading modules.',
+        'This week you had 2 more sessions than last week, totaling 3 sessions.',
+      ],
+    });
+    expect(checkDraft(steady, facts('steady'))).toEqual([]);
+    expect(checkDraft(leftUp, facts('left-up'))).toEqual([]);
+    expect(checkDraft(reading, facts('reading'))).toEqual([]);
+  });
+
+  it('strips Markdown the model added', () => {
+    const raw = JSON.stringify({
+      headline: '**3** days',
+      points: ['You trained for **3** days, spending a total of **27.3** minutes.'],
+    });
+    expect(parseDraft(raw)).toEqual({
+      headline: '3 days',
+      points: ['You trained for 3 days, spending a total of 27.3 minutes.'],
+    });
+  });
+
+  it('gives the model labelled sentences, each number with its unit', () => {
+    const lines = factSentences(facts('many-modules'));
+    expect(lines).toContain('Sessions this week: 7 (last week: 5; up 2).');
+    expect(lines).toContain(
+      'Left eye: the user reported seeing 86% of the check symbols shown only to the left eye (last week 80%; up 6 percentage points).',
+    );
+    const l1 = factSentences(facts('l1-only'));
+    expect(l1).toContain('Right eye: no check symbols were shown this week. Do not mention the right eye.');
+    expect(l1).toContain(
+      'Training happened on only 2 days this week: describe it plainly, without praise such as "consistent".',
+    );
+    expect(factSentences(facts('doubtful')).join(' ')).toContain('Reports that did not match: in 2 sessions');
+    expect(factSentences(facts('big-drop')).join(' ')).toContain('far fewer sessions than last week');
   });
 });
 
@@ -368,7 +490,7 @@ describe('evaluation set', () => {
     }
   });
 
-  it('flags a recap that ignores a mismatch or invents a right-eye result', () => {
+  it('hard-rejects a recap that ignores a mismatch or invents a right-eye result', () => {
     const doubtful = evalFacts({
       sessions: 2,
       minutes: 20,
@@ -382,9 +504,11 @@ describe('evaluation set', () => {
       points: ['Your right eye did well.'],
       suggestion: 'Rest.',
     };
-    const failed = softChecks(doubtful, silent)
-      .filter((s) => !s.passed)
-      .map((s) => s.id);
-    expect(failed).toEqual(['mentions-mismatch', 'no-right-eye-claim']);
+    expect(checkDraft(silent, doubtful)).toEqual(
+      expect.arrayContaining(['missing:mismatch', 'claim:absent-eye']),
+    );
+    // Quality checks: a generic headline is flagged.
+    const generic = softChecks(doubtful, { ...silent, headline: 'Consistent practice this week' });
+    expect(generic.find((c) => c.id === 'specific-headline')?.passed).toBe(false);
   });
 });

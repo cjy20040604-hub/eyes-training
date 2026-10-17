@@ -353,20 +353,16 @@ export interface SoftCheck {
 
 /** Content checks beyond the guardrails: does the recap say what this week calls for? */
 export function softChecks(f: WeeklyFacts, d: Draft): SoftCheck[] {
-  const text = [d.headline, ...d.points, d.suggestion].join(' ');
-  const out: SoftCheck[] = [];
-  if (f.oneEyeChecks.doubtfulSessions > 0)
-    out.push({
-      id: 'mentions-mismatch',
-      passed: /match|doubt|inconsistent|line up|agree|did(n't| not) raise|not raise/i.test(text),
-    });
-  if (f.oneEyeChecks.right.seenPercent === null)
-    out.push({ id: 'no-right-eye-claim', passed: !/right eye/i.test(text) });
-  if (f.oneEyeChecks.left.seenPercent === null)
-    out.push({ id: 'no-left-eye-claim', passed: !/left eye/i.test(text) });
-  out.push({
-    id: 'states-sessions-or-minutes',
-    passed: new RegExp(`\\b(${f.thisWeek.sessions}|${f.thisWeek.minutes})\\b`).test(text),
-  });
-  return out;
+  // Mentioning mismatches and not inventing an eye's result became hard guardrails in v2;
+  // these measure quality rather than safety.
+  const text = [d.headline, ...d.points].join(' ');
+  const numbers = [f.thisWeek.sessions, f.thisWeek.minutes].map((n) => String(n).replace('.', '\\.'));
+  const names = f.thisWeek.modules.map((m) => m.name.toLowerCase());
+  return [
+    { id: 'states-sessions-or-minutes', passed: new RegExp(`\\b(${numbers.join('|')})\\b`).test(text) },
+    {
+      id: 'specific-headline',
+      passed: /\d/.test(d.headline) || names.some((n) => d.headline.toLowerCase().includes(n)),
+    },
+  ];
 }

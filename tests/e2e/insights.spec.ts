@@ -18,13 +18,13 @@ async function installFakeModel(page: Page, mode: 'grounded' | 'invents') {
         Promise.resolve({
           prompt: (input: string) => {
             (w.__lmPrompts as string[]).push(input);
-            const json = /Facts \(JSON\):\n(.*)\n/.exec(input)?.[1];
-            const f = json ? (JSON.parse(json) as { thisWeek: { sessions: number; minutes: number } }) : null;
-            const sessions = m === 'invents' ? 99 : (f?.thisWeek.sessions ?? 0);
+            const found = /Sessions this week: (\d+)/.exec(input)?.[1];
+            const minutes = /Training time this week: ([\d.]+) minutes/.exec(input)?.[1] ?? '0';
+            const sessions = m === 'invents' ? 99 : Number(found ?? 0);
             return Promise.resolve(
               JSON.stringify({
                 headline: `${sessions} sessions this week`,
-                points: [`You trained for ${f?.thisWeek.minutes ?? 0} minutes in total.`],
+                points: [`You trained for ${minutes} minutes in total.`],
                 suggestion: 'Keep the same calm routine and take the breaks.',
               }),
             );
@@ -76,11 +76,12 @@ test('the evaluation page runs every case and reports the rates', async ({ page 
   await expect(page.getByTestId('lab-availability')).toHaveText('available');
   await page.getByTestId('lab-run').click();
   await expect(page.getByTestId('lab-summary')).toBeVisible();
-  await expect(page.getByTestId('lab-pass-first')).toHaveText('16 (100%)');
-  await expect(page.getByTestId('lab-fallback')).toHaveText('0 (0%)');
-  await expect(page.getByTestId('lab-row-doubtful')).toContainText('attempts 1');
-  // The scripted model never mentions mismatches: the content checks catch that.
-  await expect(page.getByTestId('lab-row-doubtful')).toContainText('mentions-mismatch');
+  // The scripted model never mentions mismatched reports: both such weeks fall back.
+  await expect(page.getByTestId('lab-pass-first')).toHaveText('14 (88%)');
+  await expect(page.getByTestId('lab-fallback')).toHaveText('2 (13%)');
+  await expect(page.getByTestId('lab-version')).toHaveText('v2');
+  await expect(page.getByTestId('lab-row-doubtful')).toContainText('attempts 2');
+  await expect(page.getByTestId('lab-row-doubtful')).toContainText('missing:mismatch');
 });
 
 test('a new user who opens a deep link continues on the overview after the disclaimer', async ({ page }) => {
