@@ -25,7 +25,8 @@ export interface Draft {
 /** What the model writes. The suggestion is chosen by rules (safety-relevant advice). */
 export type ModelDraft = Omit<Draft, 'suggestion'>;
 
-export const LIMITS = { headline: 120, point: 240, suggestion: 240, minPoints: 1, maxPoints: 3 } as const;
+/** Up to 3 points from the model, plus a must-say line added by rules. */
+export const LIMITS = { headline: 120, point: 240, suggestion: 240, minPoints: 1, maxPoints: 4 } as const;
 
 /** JSON Schema for the model's structured output (Prompt API `responseConstraint`). */
 export const DRAFT_SCHEMA = {
@@ -62,6 +63,7 @@ export const BANNED_EN: Rule[] = [
   { id: 'promise', re: /guarantee|permanent|will (improve|fix|restore|get better)|fixed for good/i },
   { id: 'outcome', re: /\bprogress|\bskills?\b|improv/i },
   { id: 'measurement', re: /accura|recogni/i },
+  { id: 'third-person', re: /\bthe user\b/i },
   {
     id: 'overtraining',
     re: /push through|ignore (the |any |your )?(pain|discomfort|symptom|headache|double)|(train|practi[cs]e|play) (longer|harder|more)|longer sessions|extra sessions?/i,
@@ -201,6 +203,15 @@ export function checkDraft(draft: unknown, facts: WeeklyFacts, lang: 'en' | 'zh'
     (d.headline.trim().split(/\s+/).length < 3 || INCOMPLETE.test(unname(d.headline).trim()))
   )
     problems.push('incomplete:headline');
+  // v4: a headline must carry this week's specifics, a number or an exact module name.
+  const headline = d.headline.trim();
+  if (
+    lang === 'en' &&
+    headline &&
+    !/\d/.test(headline) &&
+    !facts.thisWeek.modules.some((m) => headline.toLowerCase().includes(m.name.toLowerCase()))
+  )
+    problems.push('vague:headline');
 
   for (const rule of lang === 'en' ? BANNED_EN : BANNED_ZH) {
     if (rule.re.test(text)) problems.push(`wording:${rule.id}`);
@@ -249,6 +260,8 @@ export function describeProblems(problems: string[]): string {
             : detail === 'mismatch'
               ? 'all reports matched this week; do not mention mismatches'
               : 'do not mention an eye that had no check points';
+        case 'vague':
+          return 'the headline must contain a number from the facts or the exact name of a module';
         case 'incomplete':
           return 'the headline is incomplete; write a complete phrase of 4 to 12 words';
         case 'framing':

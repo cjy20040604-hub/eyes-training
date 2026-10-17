@@ -39,6 +39,10 @@ export interface InsightDeps {
   template: (facts: WeeklyFacts) => Draft;
   /** The English rule-based recap (defaults to `template`), for checking English drafts. */
   englishTemplate?: (facts: WeeklyFacts) => Draft;
+  /** Sentences added by rules after the model's points (output language). */
+  mustSay?: (facts: WeeklyFacts) => string[];
+  /** The same in English, for checking the English draft (defaults to `mustSay`). */
+  englishMustSay?: (facts: WeeklyFacts) => string[];
   writer: Writer | null;
   translator?: TextTranslator | null;
   signal?: AbortSignal;
@@ -114,6 +118,13 @@ export async function runInsight(
 
   // The model writes the description; the suggestion comes from the rules.
   const englishSuggestion = (deps.englishTemplate ?? deps.template)(facts).suggestion;
+  const englishMustSay = (deps.englishMustSay ?? deps.mustSay)?.(facts) ?? [];
+  const withRules = (raw: unknown) => {
+    if (!raw || typeof raw !== 'object') return raw;
+    const d = raw as { points?: unknown };
+    const points = Array.isArray(d.points) ? [...(d.points as unknown[]), ...englishMustSay] : d.points;
+    return { ...raw, points, suggestion: englishSuggestion };
+  };
   let english: Draft | null = null;
   let lastFailure: 'checks' | 'error' | 'timeout' = 'checks';
   let feedback: string | undefined;
@@ -136,7 +147,7 @@ export async function runInsight(
       feedback = undefined;
       continue;
     }
-    const draft = raw && typeof raw === 'object' ? { ...raw, suggestion: englishSuggestion } : raw;
+    const draft = withRules(raw);
     const found = checkDraft(draft, facts, 'en');
     if (found.length === 0) english = draft as Draft;
     else {
@@ -153,7 +164,13 @@ export async function runInsight(
     const tr = (s: string) => deps.translator!.translate(s, deps.signal);
     const zh: Draft = {
       headline: await tr(english.headline),
-      points: await Promise.all(english.points.map(tr)),
+      // The model's points are translated; the rule-added lines come in the output language.
+      points: [
+        ...(await Promise.all(
+          english.points.slice(0, english.points.length - englishMustSay.length).map(tr),
+        )),
+        ...(deps.mustSay?.(facts) ?? []),
+      ],
       suggestion: deps.template(facts).suggestion,
     };
     const found = checkDraft(zh, facts, 'zh');

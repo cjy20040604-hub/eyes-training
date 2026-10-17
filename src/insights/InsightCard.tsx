@@ -12,7 +12,7 @@ import {
   type TextTranslator,
 } from './onDevice';
 import { runInsight, type InsightResult } from './pipeline';
-import { templateDraft } from './template';
+import { mustSayLines, templateDraft } from './template';
 
 type Phase =
   | { kind: 'idle' }
@@ -100,6 +100,8 @@ export function InsightCard({ data }: { data: InsightData | null }) {
         lang,
         template: (f) => templateDraft(f, t),
         englishTemplate: (f) => templateDraft(f, i18n.getFixedT('en')),
+        mustSay: (f) => mustSayLines(f, t),
+        englishMustSay: (f) => mustSayLines(f, i18n.getFixedT('en')),
         writer,
         translator,
         signal: controller.signal,

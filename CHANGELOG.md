@@ -11,6 +11,7 @@ All notable changes to this project are documented here. Versions follow SemVer;
   - Gate: weeks with double vision, moderate headaches or warning symptoms never reach the model; the app shows a fixed message pointing to a clinician.
   - Guardrails: every draft (and every translation) is checked for diagnostic, treatment, outcome and over-training wording, length, and invented numbers; one corrective retry, then the rule-based recap.
   - Evaluation: 16 fixed weeks with content checks; `#/lab/insights` runs them through the real model and reports first-try pass rate, pass after retry, fallback rate, rejections by rule and latency.
+  - Four evaluation rounds on the real model (prompt v1 to v4): facts as labelled sentences with units, unit-checked numbers, rule-written suggestion and must-say lines, a 20 s limit per call with logged errors, a fresh session per attempt. Each round's failures are regression tests.
 
 ## [0.4.0] — 2026-10-17
 

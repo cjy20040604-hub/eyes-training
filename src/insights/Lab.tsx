@@ -13,7 +13,7 @@ import {
 } from './onDevice';
 import { runInsight, type InsightResult } from './pipeline';
 import { PROMPT_VERSION } from './prompt';
-import { templateDraft } from './template';
+import { mustSayLines, templateDraft } from './template';
 
 interface Row {
   id: string;
@@ -100,6 +100,8 @@ export function InsightLab() {
               lang: zh ? 'zh' : 'en',
               template: (f) => templateDraft(f, zh ? zhT : en),
               englishTemplate: (f) => templateDraft(f, en),
+              mustSay: (f) => mustSayLines(f, zh ? zhT : en),
+              englishMustSay: (f) => mustSayLines(f, en),
               writer,
               translator,
             },

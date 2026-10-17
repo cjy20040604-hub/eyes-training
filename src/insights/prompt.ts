@@ -10,8 +10,12 @@ import { isLightWeek } from './guardrails';
  * each number travels with its unit, and the suggestion is no longer written by the model
  * (it copied the prompt's example in 15 of 16 cases; safety-relevant advice is now chosen by
  * rules).
+ *
+ * v4, after the third: content that must be said (mismatched reports) is added by rules
+ * instead of requested from the model, which had learned to satisfy the check with the right
+ * keywords but the wrong meaning; headlines must name a number or an exact module.
  */
-export const PROMPT_VERSION = 'v3';
+export const PROMPT_VERSION = 'v4';
 
 export const SYSTEM_PROMPT = `You write a short, friendly weekly recap for one adult who uses a personal, educational app with red/cyan-glasses games that train the two eyes to work together.
 
@@ -20,9 +24,9 @@ Rules:
 2. There are no per-day figures: never write "each day", "per day" or "daily".
 3. Describe what happened in terms of what the user reported (say "reported seeing", not accuracy, recognition or scores). Never diagnose, never name eye conditions, never talk about eyesight, treatment, progress, skills or improvement, never judge an eye as weak, strong, good or bad, and never promise results.
 4. Only mention an eye when the facts give a percentage for it.
-5. When the facts say that some reports did not match, say so gently. Never mention mismatched reports otherwise.
+5. Never write about whether reports matched: the app adds that sentence itself when needed.
 6. When the facts say the week was lighter, describe it plainly: no praise such as "consistent" or "keep up the good work", and no push to train more.
-7. Plain text only (no Markdown). Headline: a complete phrase of 4 to 12 words, specific to this week (mention a number or a module), not a generic title. Points: 2 or 3, each at most 30 words, each saying something different.
+7. Plain text only (no Markdown). Write to the reader as "you", never "the user". Headline: a complete phrase of 4 to 12 words that contains a number from the facts or the exact name of a module, not a generic title. Points: 2 or 3, each at most 30 words, each saying something different.
 
 Answer with a JSON object: {"headline": string, "points": string[]}.`;
 
@@ -56,12 +60,7 @@ export function factSentences(f: WeeklyFacts): string[] {
       `${eye === 'left' ? 'Left' : 'Right'} eye: the user reported seeing ${now.seenPercent}% of the check symbols shown only to the ${eye} eye (${last}).`,
     );
   }
-  if (c.doubtfulSessions > 0)
-    out.push(
-      `Reports that did not match: in ${c.doubtfulSessions} sessions; those sessions did not raise the difficulty. Mention this gently.`,
-    );
-  if (c.pressesWithoutSymbol > 0)
-    out.push(`Presses when no symbol was on screen: ${c.pressesWithoutSymbol}.`);
+  // v4: whether reports matched is not given to the model; the app adds a fixed sentence.
   if (f.difficulty.raised > 0)
     out.push(`The app raised the difficulty automatically ${f.difficulty.raised} times.`);
   if (f.difficulty.loweredForComfort > 0)

@@ -76,12 +76,12 @@ test('the evaluation page runs every case and reports the rates', async ({ page 
   await expect(page.getByTestId('lab-availability')).toHaveText('available');
   await page.getByTestId('lab-run').click();
   await expect(page.getByTestId('lab-summary')).toBeVisible();
-  // The scripted model never mentions mismatched reports: both such weeks fall back.
-  await expect(page.getByTestId('lab-pass-first')).toHaveText('14 (88%)');
-  await expect(page.getByTestId('lab-fallback')).toHaveText('2 (13%)');
-  await expect(page.getByTestId('lab-version')).toHaveText('v3');
-  await expect(page.getByTestId('lab-row-doubtful')).toContainText('attempts 2');
-  await expect(page.getByTestId('lab-row-doubtful')).toContainText('missing:mismatch');
+  // The scripted model never mentions mismatched reports; since v4 the app adds that line.
+  await expect(page.getByTestId('lab-pass-first')).toHaveText('16 (100%)');
+  await expect(page.getByTestId('lab-fallback')).toHaveText('0 (0%)');
+  await expect(page.getByTestId('lab-version')).toHaveText('v4');
+  await expect(page.getByTestId('lab-row-doubtful')).toContainText('attempts 1');
+  await expect(page.getByTestId('lab-row-doubtful')).toContainText('did not quite match: 2');
 });
 
 test('a new user who opens a deep link continues on the overview after the disclaimer', async ({ page }) => {

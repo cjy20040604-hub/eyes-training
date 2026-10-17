@@ -12,7 +12,7 @@ import { checkDraft, describeProblems, numbersIn, type Draft } from '../../src/i
 import { parseDraft, type TextTranslator, type Writer } from '../../src/insights/onDevice';
 import { factSentences } from '../../src/insights/prompt';
 import { runInsight } from '../../src/insights/pipeline';
-import { templateDraft } from '../../src/insights/template';
+import { mustSayLines, templateDraft } from '../../src/insights/template';
 import { makeCheck, makeSession } from '../fixtures/factories';
 
 beforeAll(async () => {
@@ -162,7 +162,7 @@ const GOOD: Draft[] = [
     suggestion: 'Keep the same calm routine and take the breaks the app offers.',
   },
   {
-    headline: 'A steady week',
+    headline: 'A steady week of 5 sessions',
     points: ['You did 5 sessions.'],
     suggestion: 'Check that the glasses sit straight before you start.',
   },
@@ -188,7 +188,7 @@ const BAD: Array<[string, Partial<Draft>]> = [
   ['number:2026', { headline: 'Your October 2026 recap' }],
   ['length:headline', { headline: 'x'.repeat(130) }],
   ['count:points', { points: [] }],
-  ['count:points', { points: ['a', 'b', 'c', 'd'] }],
+  ['count:points', { points: ['a', 'b', 'c', 'd', 'e'] }],
   ['empty:suggestion', { suggestion: ' ' }],
 ];
 
@@ -468,9 +468,11 @@ describe('regressions from the first real evaluation', () => {
         'This week you had 2 more sessions than last week, totaling 3 sessions.',
       ],
     });
-    expect(checkDraft(steady, facts('steady'))).toEqual([]);
-    expect(checkDraft(leftUp, facts('left-up'))).toEqual([]);
-    expect(checkDraft(reading, facts('reading'))).toEqual([]);
+    // Right in content; since v4 their generic headlines ("Consistent Practice This Week")
+    // are sent back for a specific one.
+    expect(checkDraft(steady, facts('steady'))).toEqual(['vague:headline']);
+    expect(checkDraft(leftUp, facts('left-up'))).toEqual(['vague:headline']);
+    expect(checkDraft(reading, facts('reading'))).toEqual(['vague:headline']);
   });
 
   it('strips Markdown the model added', () => {
@@ -495,7 +497,8 @@ describe('regressions from the first real evaluation', () => {
     expect(l1).toContain(
       'Training happened on only 2 days this week: describe it plainly, without praise such as "consistent".',
     );
-    expect(factSentences(facts('doubtful')).join(' ')).toContain('Reports that did not match: in 2 sessions');
+    // Since v4 the model is not told about mismatches; the app adds that sentence itself.
+    expect(factSentences(facts('doubtful')).join(' ')).not.toMatch(/match/i);
     expect(factSentences(facts('big-drop')).join(' ')).toContain('far fewer sessions than last week');
   });
 });
@@ -524,7 +527,8 @@ describe('regressions from the second real evaluation', () => {
       ],
     });
     expect(checkDraft(leftDown, facts('left-down'))).toContain('claim:mismatch');
-    expect(checkDraft(perfect, facts('perfect'))).toEqual(['incomplete:headline']); // "matching" is not a claim
+    // "matching last week's total" is not a mismatch claim.
+    expect(checkDraft(perfect, facts('perfect'))).toEqual(['incomplete:headline', 'vague:headline']);
     expect(checkDraft(steady, facts('steady'))).toEqual(['wording:measurement']);
   });
 
@@ -551,8 +555,100 @@ describe('regressions from the second real evaluation', () => {
       ],
     });
     expect(checkDraft(bigDrop, facts('big-drop'))).toEqual([]);
-    expect(checkDraft(manyModules, facts('many-modules'))).toEqual([]);
+    expect(checkDraft(manyModules, facts('many-modules'))).toEqual(['vague:headline']); // generic headline, since v4
     expect(checkDraft(falseAlarms, facts('false-alarms'))).toEqual([]);
+  });
+});
+
+/** Real outputs from the third evaluation run (prompt v3, 2026-10-18). */
+describe('regressions from the third real evaluation', () => {
+  const facts = (id: string) => EVAL_CASES.find((c) => c.id === id)!.facts;
+  const withTip = (id: string, d: Omit<Draft, 'suggestion'>): Draft => ({
+    ...d,
+    suggestion: templateDraft(facts(id), i18n.getFixedT('en')).suggestion,
+  });
+
+  it('rejects a wrong module name, a headline without specifics and "the user"', () => {
+    const l1 = withTip('l1-only', {
+      headline: 'Two Eyes On Module: Increased Sessions and Training Time',
+      points: ['This week, you completed 3 sessions, totaling 24 minutes of training.'],
+    });
+    const perfect = withTip('perfect', {
+      headline: 'Consistent Training: Module',
+      points: ['You completed 5 sessions this week.'],
+    });
+    const firstWeek = withTip('first-week', {
+      headline: 'Module "Both Eyes On": Two Sessions of Training This Week',
+      points: ['The user completed 2 sessions this week, totaling 14.5 minutes of training time.'],
+    });
+    expect(checkDraft(l1, facts('l1-only'))).toEqual(['vague:headline']);
+    expect(checkDraft(perfect, facts('perfect'))).toEqual(['vague:headline']);
+    expect(checkDraft(firstWeek, facts('first-week'))).toEqual(['wording:third-person']);
+  });
+});
+
+describe('must-say lines added by rules', () => {
+  const doubtful = EVAL_CASES.find((c) => c.id === 'doubtful')!.facts;
+  const en = () => i18n.getFixedT('en');
+  const answer = {
+    headline: '5 sessions and 48 minutes this week',
+    points: ['You trained on 4 of the last 7 days.'],
+  };
+  const writer = (): Writer => ({ write: () => Promise.resolve(answer), destroy: () => {} });
+
+  it("appends the mismatch sentence after the model's points, so the model never has to", async () => {
+    const r = await runInsight(
+      doubtful,
+      { kind: 'ok' },
+      {
+        lang: 'en',
+        template: (f) => templateDraft(f, en()),
+        mustSay: (f) => mustSayLines(f, en()),
+        writer: writer(),
+        now: () => 0,
+      },
+    );
+    expect(r).toMatchObject({ source: 'model', attempts: 1 });
+    expect(r.draft.points).toEqual([
+      'You trained on 4 of the last 7 days.',
+      'Sessions whose reports did not quite match: 2. They did not raise the difficulty.',
+    ]);
+  });
+
+  it('adds the Chinese sentence directly instead of translating it', async () => {
+    const zhT = i18n.getFixedT('zh-Hans');
+    const translated: string[] = [];
+    const translator: TextTranslator = {
+      translate: (t) => {
+        translated.push(t);
+        return Promise.resolve(
+          t === answer.headline ? '本周 5 次训练，共 48 分钟' : '过去 7 天里您训练了 4 天。',
+        );
+      },
+      destroy: () => {},
+    };
+    const r = await runInsight(
+      doubtful,
+      { kind: 'ok' },
+      {
+        lang: 'zh',
+        template: (f) => templateDraft(f, zhT),
+        englishTemplate: (f) => templateDraft(f, en()),
+        mustSay: (f) => mustSayLines(f, zhT),
+        englishMustSay: (f) => mustSayLines(f, en()),
+        writer: writer(),
+        translator,
+        now: () => 0,
+      },
+    );
+    expect(r.source).toBe('model');
+    expect(r.draft.points).toEqual([
+      '过去 7 天里您训练了 4 天。',
+      '报告对不太上的训练：2 次，这些训练没有提高难度。',
+    ]);
+    expect(translated).not.toContain(
+      'Sessions whose reports did not quite match: 2. They did not raise the difficulty.',
+    );
   });
 });
 
@@ -610,6 +706,6 @@ describe('headline completeness', () => {
       suggestion: templateDraft(f, i18n.getFixedT('en')).suggestion,
     };
     expect(checkDraft(d, f)).toEqual([]);
-    expect(checkDraft({ ...d, headline: 'Six sessions with' }, f)).toEqual(['incomplete:headline']);
+    expect(checkDraft({ ...d, headline: '6 sessions with' }, f)).toEqual(['incomplete:headline']);
   });
 });
