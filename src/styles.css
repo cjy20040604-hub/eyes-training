@@ -1386,7 +1386,7 @@ thead th {
 /* ---- 0.3: weekly goal and weekly check cards (overview) ---- */
 .goal-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 8px 48px;
   margin: 8px 0 4px;
 }

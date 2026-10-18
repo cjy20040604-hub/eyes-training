@@ -97,3 +97,23 @@ test('a new user who opens a deep link continues on the overview after the discl
   await page.getByRole('link', { name: 'Back to the overview' }).click();
   await expect(page.getByRole('heading', { name: "Today's training" })).toBeVisible();
 });
+
+test('the overview shows this week in brief and opens the full recap', async ({ page }) => {
+  await acceptDisclaimer(page);
+  await importBundle(page, bundle({ ...unlockedHistory() }));
+  await page.goto('/#/');
+  const card = page.getByTestId('recap-teaser');
+  await expect(card).toContainText('Weekly recap');
+  await expect(card.getByTestId('recap-teaser-text')).toContainText('6 sessions');
+  await card.getByTestId('recap-teaser-open').click();
+  await expect(page).toHaveURL(/#\/report$/);
+  // The recap card is focused and in view, not the top of the long summary page.
+  await expect(page.getByTestId('insight-card')).toBeFocused();
+  await expect(page.getByTestId('insight-card')).toBeInViewport();
+});
+
+test('a brand-new user does not see an empty recap card', async ({ page }) => {
+  await acceptDisclaimer(page);
+  await expect(page.getByTestId('start-quick')).toBeVisible();
+  await expect(page.getByTestId('recap-teaser')).toHaveCount(0);
+});

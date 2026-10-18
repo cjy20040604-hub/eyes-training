@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, Card, Progress } from '../ui';
-import { factsForModel, insightGate, weeklyFacts, type InsightData, type WeeklyFacts } from './facts';
+import { factsForModel, insightGate, type InsightData } from './facts';
 import type { Draft } from './guardrails';
 import {
   createTranslator,
@@ -13,6 +13,7 @@ import {
 } from './onDevice';
 import { runInsight, type InsightResult } from './pipeline';
 import { mustSayLines, templateDraft } from './template';
+import { useWeeklyFacts } from './useWeeklyFacts';
 
 type Phase =
   | { kind: 'idle' }
@@ -20,16 +21,6 @@ type Phase =
   | { kind: 'done'; result: InsightResult };
 
 const usable = (a: Availability) => a !== 'unsupported' && a !== 'unavailable';
-
-/** Builds the facts for the last 7 days, with English module names for the model. */
-export function useWeeklyFacts(data: InsightData | null): WeeklyFacts | null {
-  const { i18n } = useTranslation();
-  return useMemo(() => {
-    if (!data) return null;
-    const en = i18n.getFixedT('en');
-    return weeklyFacts(data, new Date(), (id) => en(`modules.${id}.name`));
-  }, [data, i18n]);
-}
 
 function Recap({ draft, testId }: { draft: Draft; testId?: string }) {
   const { t } = useTranslation();
@@ -52,13 +43,23 @@ function Recap({ draft, testId }: { draft: Draft; testId?: string }) {
  * Weekly recap. Always shows the rule-based version; with the browser's built-in model the
  * user can have it rewritten in plain language, on this device, checked against the numbers.
  */
-export function InsightCard({ data }: { data: InsightData | null }) {
+export function InsightCard({ data, focus }: { data: InsightData | null; focus?: boolean }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'zh-Hans' ? 'zh' : 'en';
   const facts = useWeeklyFacts(data);
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const abort = useRef<AbortController | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const focused = useRef(false);
+
+  // Arriving from the overview's recap card: bring the recap into view once it has rendered.
+  useEffect(() => {
+    if (!focus || !facts || focused.current || !box.current) return;
+    focused.current = true;
+    box.current.scrollIntoView?.({ block: 'start' });
+    box.current.focus({ preventScroll: true });
+  }, [focus, facts]);
 
   useEffect(() => {
     let active = true;
@@ -122,7 +123,7 @@ export function InsightCard({ data }: { data: InsightData | null }) {
 
   return (
     <Card title={t('insights.title')} className="insight-card">
-      <div data-testid="insight-card">
+      <div data-testid="insight-card" id="weekly-recap" ref={box} tabIndex={-1}>
         <p className="hint">{t('insights.intro')}</p>
         {gate.kind === 'safety' ? (
           <div data-testid="insight-safety">

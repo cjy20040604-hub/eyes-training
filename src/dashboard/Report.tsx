@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { downloadText, safetyEventsToCsv, sessionsToCsv, symptomsToCsv } from '../data/exportImport';
 import { useActiveCalibration, useAllData } from '../data/hooks';
@@ -26,6 +27,8 @@ export function Report() {
   const all = useAllData();
   const { calibration } = useActiveCalibration();
   const [range, setRange] = useState<Range>(30);
+  const location = useLocation();
+  const focusRecap = (location.state as { focus?: string } | null)?.focus === 'recap';
 
   const sessions = all.data?.sessions ?? [];
   const checks = all.data?.checks ?? [];
@@ -154,7 +157,7 @@ export function Report() {
       </div>
       <Banner tone="info">{t('report.disclaimer')}</Banner>
 
-      <InsightCard data={all.data ?? null} />
+      <InsightCard data={all.data ?? null} focus={focusRecap} />
 
       <Card title={t('report.setupTitle')}>
         {calibration ? (

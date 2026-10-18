@@ -1071,6 +1071,9 @@
     "aiBadge": "Written by on-device AI · checked against your numbers",
     "aiBadgeRetry": "Written by on-device AI · checked against your numbers (second try)",
     "labNotice": "This is a developer page that measures the on-device AI recap. You do not need it to train.",
-    "labBack": "Back to the overview"
+    "labBack": "Back to the overview",
+    "teaserOpen": "See the full recap",
+    "teaserAi": "Can be rewritten in plain words by the on-device AI.",
+    "teaserSafety": "No recap this week: you reported symptoms. Please pause training and talk to your orthoptist or eye doctor."
   }
 }

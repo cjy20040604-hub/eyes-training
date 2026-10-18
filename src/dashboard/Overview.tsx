@@ -11,6 +11,7 @@ import type { ModuleDefinition } from '../modules/types';
 import { isDailyCapReached, minutesUsedOnDay } from '../safety/caps';
 import { evaluateGate, type GateResult } from '../safety/gating';
 import { Banner, Progress } from '../ui';
+import { RecapTeaser } from '../insights/RecapTeaser';
 import { BackupReminder, WeeklyCheckCard, WeeklyGoal } from './OverviewCards';
 
 const wholeMinutes = (m: number) => Math.round(m);
@@ -215,6 +216,7 @@ export function Overview() {
           assessments={all.data?.assessments ?? []}
           enabled={!!calibration && !settings.trainingLock.locked}
         />
+        {sessions.length ? <RecapTeaser data={all.data ?? null} /> : null}
       </div>
 
       <h2 className="section-title">{t('overview.planTitle')}</h2>
